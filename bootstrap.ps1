@@ -53,7 +53,7 @@ if ($coPython) {
     Write-Host "Đang nạp ứng dụng Office Deploy từ hệ thống máy chủ..." -ForegroundColor Cyan
     
     # BẠN HÃY THAY ĐƯỜNG DẪN RAW GITHUB CỦA FILE PYTHON VÀO ĐÂY
-    $linkScriptPy = "https://raw.githubusercontent.com/tuantran19912512/Windows-tool-box/main/OfficeDeploy.py"
+    $linkScriptPy = "https://raw.githubusercontent.com/tuantran19912512/pythonoffice/refs/heads/main/officedeploy.py"
     $filePyLuu = Join-Path $env:TEMP "OfficeDeploy_Master.py"
 
     try {
