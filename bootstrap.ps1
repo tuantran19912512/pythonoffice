@@ -1,5 +1,5 @@
 ﻿# ==============================================================================
-# KỊCH BẢN MỒI TỰ ĐỘNG (BOOTSTRAP SCRIPT) - CẬP NHẬT GỠ LỖI
+# KỊCH BẢN MỒI TỰ ĐỘNG (BOOTSTRAP SCRIPT) - CHỐNG LỖI MICROSOFT STORE
 # ==============================================================================
 
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
@@ -13,56 +13,64 @@ $ErrorActionPreference = "SilentlyContinue"
 Write-Host "Đang kiểm tra môi trường hệ thống..." -ForegroundColor Cyan
 $coPython = $false
 
-# Cố gắng tìm Python qua biến môi trường hoặc file thực thi
-if (Get-Command "python.exe" -ErrorAction SilentlyContinue) {
+# Kiểm tra Python và loại trừ file giả mạo của Microsoft Store (nằm trong thư mục WindowsApps)
+$pyCmd = Get-Command "python" -ErrorAction SilentlyContinue
+if ($pyCmd -and ($pyCmd.Source -notmatch "WindowsApps")) {
     $coPython = $true
-    Write-Host "[Xong] Đã tìm thấy Python trong hệ thống." -ForegroundColor Green
+    Write-Host "[Xong] Đã tìm thấy Python chuẩn trong hệ thống." -ForegroundColor Green
 } else {
-    Write-Host "[Chú ý] Chưa có Python. Đang tự động tải và cài đặt (khoảng 1 phút)..." -ForegroundColor Yellow
+    Write-Host "[Chú ý] Máy chưa có Python (hoặc đang bị kẹt file ảo của Windows)."
+    Write-Host "-> Đang tự động tải và cài đặt Python chuẩn (quá trình này mất khoảng 1 phút)..." -ForegroundColor Yellow
+    
     $linkTaiPython = "https://www.python.org/ftp/python/3.12.3/python-3.12.3-amd64.exe"
     $fileCaiDat = Join-Path $env:TEMP "python_installer.exe"
 
-    Invoke-WebRequest -Uri $linkTaiPython -OutFile $fileCaiDat -UseBasicParsing
-    $tienTrinh = Start-Process -FilePath $fileCaiDat -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_tcltk=1" -Wait -PassThru
-    
-    if ($tienTrinh.ExitCode -eq 0) {
-        Write-Host "[Xong] Cài đặt Python thành công!" -ForegroundColor Green
-        # Ép Windows nạp lại biến môi trường
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-        $coPython = $true
-    } else {
-        Write-Host "[Lỗi] Cài đặt Python thất bại. Mã lỗi: $($tienTrinh.ExitCode)" -ForegroundColor Red
+    try {
+        Invoke-WebRequest -Uri $linkTaiPython -OutFile $fileCaiDat -UseBasicParsing
+        # Cài đặt ngầm (Silent), tự động add PATH và cài tcltk (bắt buộc cho giao diện tkinter)
+        $tienTrinh = Start-Process -FilePath $fileCaiDat -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_tcltk=1" -Wait -PassThru
+        
+        if ($tienTrinh.ExitCode -eq 0) {
+            Write-Host "[Xong] Cài đặt Python thành công!" -ForegroundColor Green
+            # Ép Windows nạp lại biến môi trường ngay lập tức
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+            $coPython = $true
+        } else {
+            Write-Host "[Lỗi] Cài đặt Python thất bại. Mã lỗi: $($tienTrinh.ExitCode)" -ForegroundColor Red
+        }
+    } catch {
+        Write-Host "[Lỗi] Không thể tải bộ cài Python từ máy chủ." -ForegroundColor Red
+    } finally {
+        if (Test-Path $fileCaiDat) { Remove-Item $fileCaiDat -Force }
     }
 }
 
+# Tiến hành tải và chạy tool của bạn
 if ($coPython) {
     Write-Host "Đang nạp Office Deploy từ GitHub..." -ForegroundColor Cyan
     
-    # LINK RAW CỦA BẠN ĐÃ ĐƯỢC CẬP NHẬT VÀO ĐÂY
     $linkScriptPy = "https://raw.githubusercontent.com/tuantran19912512/pythonoffice/refs/heads/main/officedeploy.py"
     $filePyLuu = Join-Path $env:TEMP "OfficeDeploy_Master.py"
 
-    Invoke-WebRequest -Uri $linkScriptPy -OutFile $filePyLuu -UseBasicParsing
-    
-    if (Test-Path $filePyLuu) {
-        Write-Host "-> Bắt đầu khởi chạy Tool..." -ForegroundColor Green
-        Write-Host "------------------------------------------------------"
+    try {
+        Invoke-WebRequest -Uri $linkScriptPy -OutFile $filePyLuu -UseBasicParsing
         
-        # Chạy trực tiếp để BẮT LỖI nếu file Python crash
-        try {
-            & python.exe $filePyLuu
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "`n[LỖI PYTHON] Ứng dụng Python đã bị crash! Vui lòng đọc thông báo lỗi bằng tiếng Anh ở phía trên." -ForegroundColor Red
-            }
-        } catch {
-            Write-Host "`n[LỖI GỌI PYTHON] Không thể gọi lệnh 'python'. Hãy thử tắt PowerShell mở lại, hoặc khởi động lại máy tính!" -ForegroundColor Red
+        if (Test-Path $filePyLuu) {
+            Write-Host "-> Bắt đầu khởi chạy Tool..." -ForegroundColor Green
+            Write-Host "------------------------------------------------------"
+            
+            # Khởi chạy Python trực tiếp
+            python $filePyLuu
+            
+            Write-Host "------------------------------------------------------"
+            Write-Host "[Xong] Đã đóng ứng dụng." -ForegroundColor Cyan
         }
-        
-        Write-Host "------------------------------------------------------"
-    } else {
+    } catch {
         Write-Host "[Lỗi] Không thể tải được file Python từ GitHub. Hãy kiểm tra lại link." -ForegroundColor Red
+    } finally {
+        if (Test-Path $filePyLuu) { Remove-Item $filePyLuu -Force }
     }
 }
 
-Write-Host "Ấn phím Enter để thoát..." -ForegroundColor Cyan
+Write-Host "`nQuá trình hoàn tất. Ấn phím Enter để thoát..." -ForegroundColor DarkGray
 Read-Host
