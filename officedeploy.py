@@ -45,8 +45,9 @@ def tao_nut_bam_mau(khung_chua, chu_hien_thi, mau_nen, mau_chu="white", hanh_don
 class UngDungCaiDatOffice:
     def __init__(self, cua_so_chinh):
         self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - Trực tiếp từ Server CDN (V5 Ultimate)")
-        self.cua_so.geometry("640x780")
+        self.cua_so.title("Cài đặt Microsoft Office - Trực tiếp từ Server CDN (V5.1 Compact)")
+        # Đã thu gọn chiều cao từ 780 xuống 650 cho vừa vặn nhất
+        self.cua_so.geometry("640x650")
         self.cua_so.resizable(False, False)
 
         self.phong_chu_thuong = ("Segoe UI", 9)
@@ -89,13 +90,13 @@ class UngDungCaiDatOffice:
     def xay_dung_tab_cai_dat(self, tab):
         # 1. KHUNG PHIÊN BẢN
         khung_phien_ban = ttk.LabelFrame(tab, text=" 📄 Phiên bản Office ")
-        khung_phien_ban.pack(fill="x", padx=10, pady=8, ipady=5)
+        khung_phien_ban.pack(fill="x", padx=10, pady=8, ipady=3)
         
         self.bien_phien_ban = tk.StringVar(value="2024")
         danh_sach_ban = ["Office 2016", "Office 2019", "Office 2021", "Office 2024", "Office 365"]
         
         khung_rb_phien_ban = ttk.Frame(khung_phien_ban)
-        khung_rb_phien_ban.pack(fill="x", padx=10, pady=5)
+        khung_rb_phien_ban.pack(fill="x", padx=10, pady=2)
         
         self.bien_phien_ban.trace_add("write", self.cap_nhat_hop_chon_ban_con)
         for vi_tri, ten_ban in enumerate(danh_sach_ban):
@@ -110,23 +111,23 @@ class UngDungCaiDatOffice:
 
         # 2. KHUNG KIẾN TRÚC & NGÔN NGỮ
         khung_ngang = ttk.Frame(tab)
-        khung_ngang.pack(fill="x", padx=10, pady=8)
+        khung_ngang.pack(fill="x", padx=10, pady=5)
         
         khung_kien_truc = ttk.LabelFrame(khung_ngang, text=" ⚙️ Kiến trúc ")
         khung_kien_truc.pack(side="left", fill="both", expand=True, padx=(0, 5))
         self.bien_kien_truc = tk.StringVar(value="64")
-        ttk.Radiobutton(khung_kien_truc, text="64-bit", variable=self.bien_kien_truc, value="64").pack(side="left", padx=15, pady=8)
-        ttk.Radiobutton(khung_kien_truc, text="32-bit", variable=self.bien_kien_truc, value="32").pack(side="right", padx=15, pady=8)
+        ttk.Radiobutton(khung_kien_truc, text="64-bit", variable=self.bien_kien_truc, value="64").pack(side="left", padx=15, pady=5)
+        ttk.Radiobutton(khung_kien_truc, text="32-bit", variable=self.bien_kien_truc, value="32").pack(side="right", padx=15, pady=5)
 
         khung_ngon_ngu = ttk.LabelFrame(khung_ngang, text=" 🌐 Ngôn ngữ ")
         khung_ngon_ngu.pack(side="right", fill="both", expand=True, padx=(5, 0))
         self.hop_chon_ngon_ngu = ttk.Combobox(khung_ngon_ngu, values=["English (US) - en-us", "Vietnamese - vi-vn"], state="readonly")
         self.hop_chon_ngon_ngu.current(0)
-        self.hop_chon_ngon_ngu.pack(fill="x", padx=10, pady=8)
+        self.hop_chon_ngon_ngu.pack(fill="x", padx=10, pady=6)
 
         # 3. KHUNG ỨNG DỤNG
         khung_ung_dung = ttk.LabelFrame(tab, text=" ☑️ Chọn ứng dụng cần cài ")
-        khung_ung_dung.pack(fill="x", padx=10, pady=8)
+        khung_ung_dung.pack(fill="x", padx=10, pady=5)
         
         danh_sach_app = [
             ("Access", 0, 0), ("Excel", 0, 1), ("Word", 0, 2),
@@ -137,21 +138,21 @@ class UngDungCaiDatOffice:
         for ten_app, hang, cot in danh_sach_app:
             bien_tich = tk.BooleanVar(value=True)
             self.cac_bien_ung_dung[ten_app] = bien_tich
-            ttk.Checkbutton(khung_ung_dung, text=f" {ten_app}", variable=bien_tich).grid(row=hang, column=cot, sticky="w", padx=25, pady=6)
+            ttk.Checkbutton(khung_ung_dung, text=f" {ten_app}", variable=bien_tich).grid(row=hang, column=cot, sticky="w", padx=25, pady=4)
 
-        # 4. KHUNG TÙY CHỌN BỔ SUNG (MỚI THÊM)
+        # 4. KHUNG TÙY CHỌN BỔ SUNG
         khung_tuy_chon = ttk.LabelFrame(tab, text=" 🔧 Tùy chọn tự động sau cài đặt ")
-        khung_tuy_chon.pack(fill="x", padx=10, pady=8)
+        khung_tuy_chon.pack(fill="x", padx=10, pady=5)
         
         self.bien_tu_dong_ohook = tk.BooleanVar(value=True)
-        ttk.Checkbutton(khung_tuy_chon, text="Tự động Kích hoạt Ohook", variable=self.bien_tu_dong_ohook).pack(side="left", padx=25, pady=8)
+        ttk.Checkbutton(khung_tuy_chon, text="Tự động Kích hoạt Ohook", variable=self.bien_tu_dong_ohook).pack(side="left", padx=25, pady=6)
         
         self.bien_tao_shortcut = tk.BooleanVar(value=True)
-        ttk.Checkbutton(khung_tuy_chon, text="Đưa lối tắt (Word, Excel) ra Desktop", variable=self.bien_tao_shortcut).pack(side="left", padx=25, pady=8)
+        ttk.Checkbutton(khung_tuy_chon, text="Đưa lối tắt (Word, Excel) ra Desktop", variable=self.bien_tao_shortcut).pack(side="left", padx=25, pady=6)
 
         # 5. NÚT BẤM
         khung_nut_bam = ttk.Frame(tab)
-        khung_nut_bam.pack(fill="x", padx=10, pady=10)
+        khung_nut_bam.pack(fill="x", padx=10, pady=5)
         tao_nut_bam_mau(khung_nut_bam, "💊 KÍCH HOẠT OHOOK", "#F57C00", hanh_dong=self.khoi_dong_thuoc_ohook).pack(side="left", padx=5)
         tao_nut_bam_mau(khung_nut_bam, "⚙ BẮT ĐẦU CÀI ĐẶT", "#0288D1", hanh_dong=self.khoi_dong_luong_cai_dat).pack(side="right", padx=5)
 
@@ -263,11 +264,9 @@ class UngDungCaiDatOffice:
         if duong_dan_setup and os.path.exists(duong_dan_setup):
             self.cap_nhat_trang_thai("🚀 Đang chạy trình cài đặt. Vui lòng đợi đến khi bảng màu cam tắt hẳn...")
             try:
-                # Dùng .wait() để tạm dừng tiến trình ngầm cho đến khi cài đặt Office hoàn tất
                 tien_trinh_cai_dat = subprocess.Popen([duong_dan_setup, "/configure", duong_dan_xml])
                 tien_trinh_cai_dat.wait()
                 
-                # Sau khi cài xong, kiểm tra các tùy chọn bổ sung
                 if self.bien_tao_shortcut.get():
                     self.tao_loi_tat_desktop()
                     
