@@ -248,7 +248,7 @@ class TrienKhaiOffice(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("VietToolbox - Triển khai Microsoft Office (V10.4 Ultimate IDM Core)")
-        self.geometry("640x780")
+        self.geometry("640x700")
         self.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
         self.thu_muc_lam_viec = tk.StringVar(value=os.getcwd())
