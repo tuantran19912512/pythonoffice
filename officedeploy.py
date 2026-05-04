@@ -143,7 +143,7 @@ class DongCoTaiDaLuong:
 class UngDungCaiDatOffice:
     def __init__(self, cua_so_chinh):
         self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - (V8.3 FWLink Stable)")
+        self.cua_so.title("Cài đặt Microsoft Office - Max Speed (V8.4 Chân Ái)")
         self.cua_so.geometry("640x720")
         self.cua_so.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
@@ -408,7 +408,7 @@ class UngDungCaiDatOffice:
         
         duong_dan_setup = self.chuan_bi_cong_cu_odt_cho_go()
         if not duong_dan_setup:
-            self.cap_nhat_trang_thai("❌ Lỗi mạng: Không thể lấy file Setup.exe qua kênh FWLink!")
+            self.cap_nhat_trang_thai("❌ Lỗi mạng: Không thể tải được Setup.exe từ máy chủ WSUS!")
             self.phuc_hoi_nut_cai_dat()
             return
 
@@ -422,25 +422,34 @@ class UngDungCaiDatOffice:
         file_xml = os.path.join(thu_muc_goc, "C2R_Config.xml")
         with open(file_xml, "w", encoding="utf-8") as f: f.write(xml_code)
         
-        subprocess.Popen([duong_dan_setup, "/configure", file_xml]).wait()
+        # BẢN VÁ: THEO DÕI EXIT CODE ĐỂ CHỐNG "BÁO LÁO"
+        tien_trinh = subprocess.Popen([duong_dan_setup, "/configure", file_xml])
+        tien_trinh.wait()
+        ma_thoat = tien_trinh.returncode # 0 là thành công, khác 0 là lỗi
         
         if os.path.exists(file_xml): os.remove(file_xml)
-        if messagebox.askyesno("Dọn dẹp", "Cài đặt thành công!\nBạn có muốn XÓA thư mục 2.9GB tải về để tiết kiệm ổ cứng không?"):
-            try: shutil.rmtree(os.path.join(thu_muc_goc, "Office"))
-            except: pass
-        
-        if self.bien_tao_shortcut.get(): self.tao_loi_tat_desktop()
-        if self.bien_tu_dong_ohook.get():
-            self.cap_nhat_trang_thai("⏳ Đang tự động Kích hoạt Ohook...")
-            self.chay_gist_ngam("/Ohook")
-            
         self.cua_so.after(0, lambda: self.thanh_tien_do.stop())
-        self.cap_nhat_trang_thai("✅ HOÀN TẤT: Đã cài đặt C2R siêu tốc độ thành công!")
+        
+        if ma_thoat == 0:
+            if messagebox.askyesno("Dọn dẹp", "Cài đặt thành công!\nBạn có muốn XÓA thư mục 2.9GB tải về để tiết kiệm ổ cứng không?"):
+                try: shutil.rmtree(os.path.join(thu_muc_goc, "Office"))
+                except: pass
+            
+            if self.bien_tao_shortcut.get(): self.tao_loi_tat_desktop()
+            if self.bien_tu_dong_ohook.get():
+                self.cap_nhat_trang_thai("⏳ Đang tự động Kích hoạt Ohook...")
+                self.chay_gist_ngam("/Ohook")
+                
+            self.cap_nhat_trang_thai("✅ HOÀN TẤT: Đã cài đặt C2R siêu tốc độ thành công!")
+            messagebox.showinfo("Thành công", "Mọi quy trình đã hoàn tất hoàn hảo. Chúc bác một ngày làm việc vui vẻ!")
+        else:
+            self.cap_nhat_trang_thai(f"❌ Lỗi: Cài đặt thất bại hoặc bị hủy ngang (Mã lỗi: {ma_thoat})")
+            messagebox.showerror("Lỗi Cài Đặt", f"Trình cài đặt Microsoft Office đã dừng đột ngột!\nMã lỗi trả về: {ma_thoat}\nLý do thường gặp: Ổ C: bị đầy, hoặc phiên bản Office cũ chưa được gỡ sạch.")
+            
         self.phuc_hoi_nut_cai_dat()
-        messagebox.showinfo("Thành công", "Mọi quy trình đã hoàn tất hoàn hảo. Chúc bác một ngày làm việc vui vẻ!")
 
     # ==========================================================================
-    # BẢN VÁ LỖI V8.3: TẢI ODT QUA HỆ THỐNG FWLINK (BẤT TỬ)
+    # BẢN VÁ LỖI V8.4: TRỞ LẠI VỚI CHÂN ÁI WSUS 
     # ==========================================================================
     def chuan_bi_cong_cu_odt_cho_go(self):
         duong_dan_file_setup = os.path.join(os.environ['TEMP'], "setup.exe")
@@ -449,23 +458,15 @@ class UngDungCaiDatOffice:
             try: os.remove(duong_dan_file_setup) 
             except: pass
 
-        self.cap_nhat_trang_thai("⏳ Đang kéo Setup chuẩn qua kênh FWLink của Microsoft...")
-        
-        # Link FWLink thần thánh: Luôn tự động Redirect về bản cập nhật mới nhất
-        link_fw = "https://go.microsoft.com/fwlink/p/?LinkID=626065"
-        file_odt = os.path.join(os.environ['TEMP'], "odt_installer.exe")
+        self.cap_nhat_trang_thai("⏳ Đang tải trực tiếp lõi Setup.exe từ máy chủ WSUS...")
+        link_wsus = "https://officecdn.microsoft.com/pr/wsus/setup.exe"
         
         try:
-            req = urllib.request.Request(link_fw, headers={'User-Agent': 'Mozilla/5.0'})
-            # urllib mặc định tự động đi theo các lệnh Redirect 302 của server
-            with urllib.request.urlopen(req, timeout=30) as phan_hoi, open(file_odt, 'wb') as f: 
+            req = urllib.request.Request(link_wsus, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=30) as phan_hoi, open(duong_dan_file_setup, 'wb') as f: 
                 f.write(phan_hoi.read())
             
-            self.cap_nhat_trang_thai("⏳ Đang trích xuất lõi cài đặt Setup.exe...")
-            thu_muc_temp = os.environ['TEMP']
-            subprocess.run([file_odt, f"/extract:{thu_muc_temp}", "/quiet"], creationflags=subprocess.CREATE_NO_WINDOW)
-            
-            if os.path.exists(duong_dan_file_setup):
+            if os.path.exists(duong_dan_file_setup) and os.path.getsize(duong_dan_file_setup) > 1000000:
                 return duong_dan_file_setup
             return None
         except Exception as e: 
