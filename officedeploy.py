@@ -143,7 +143,7 @@ class DongCoTaiDaLuong:
 class UngDungCaiDatOffice:
     def __init__(self, cua_so_chinh):
         self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - Max Speed (V7.1 Smart C2R)")
+        self.cua_so.title("Cài đặt Microsoft Office - Max Speed (V7.2 Perfect C2R)")
         self.cua_so.geometry("640x720")
         self.cua_so.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
@@ -313,12 +313,16 @@ class UngDungCaiDatOffice:
         nam_pb = self.bien_phien_ban.get()
         ban_con = self.hop_chon_ban_con.get().replace(" & ", "").replace(" ", "")
         ma_san_pham = tu_dien_phien_ban.get(f"{nam_pb}_{ban_con}", "ProPlus2024Retail")
+        
         kien_truc_so = "64" if self.bien_kien_truc.get() == "64" else "32"
         kien_truc_chu = "x64" if kien_truc_so == "64" else "x86"
         ngon_ngu = "vi-vn" if "Vietnamese" in self.hop_chon_ngon_ngu.get() else "en-us"
+        
+        # MÃ LCID BẮT BUỘC ĐỂ TẢI CAB NGÔN NGỮ
+        ma_lcid = "1066" if ngon_ngu == "vi-vn" else "1033"
+        
         thu_muc_goc = self.thu_muc_luu_file.get()
         
-        # --- BẮT ĐẦU BẢN VÁ LỖI V7.1 ---
         self.cap_nhat_trang_thai("🔍 Đang bung tệp Danh mục (.cab) để dò mã Phiên bản...")
         base_url = "https://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
         version_hien_tai = None
@@ -332,10 +336,8 @@ class UngDungCaiDatOffice:
             with urllib.request.urlopen(req, timeout=15) as res, open(cab_file, 'wb') as f:
                 f.write(res.read())
                 
-            # Đập hộp CAB bằng Expand.exe của Windows
             subprocess.run(["expand.exe", cab_file, "-F:*.xml", tm_cab], creationflags=subprocess.CREATE_NO_WINDOW)
             
-            # Đọc mã Build từ file XML vừa rớt ra
             for f_xml in glob.glob(os.path.join(tm_cab, "*.xml")):
                 noi_dung = open(f_xml, 'r', encoding='utf-8', errors='ignore').read()
                 match = re.search(r'Version="(\d{2}\.\d+\.\d+\.\d+)"', noi_dung)
@@ -348,16 +350,21 @@ class UngDungCaiDatOffice:
             self.cap_nhat_trang_thai("❌ Lỗi: Không thể phân tích Version từ Microsoft.")
             self.phuc_hoi_nut_cai_dat()
             return
-        # --- KẾT THÚC BẢN VÁ LỖI ---
 
         tm_data = os.path.join(thu_muc_goc, "Office", "Data")
         tm_version = os.path.join(tm_data, version_hien_tai)
         os.makedirs(tm_version, exist_ok=True)
 
+        # ĐÃ BỔ SUNG ĐỦ BỘ 8 FILE CHUẨN CỦA OFFICE TOOL PLUS
         danh_sach_tai = [
-            (f"{base_url}/Office/Data/v{kien_truc_so}.cab", os.path.join(tm_data, f"v{kien_truc_so}.cab"), "File danh mục (1/3)"),
-            (f"{base_url}/Office/Data/{version_hien_tai}/stream.{kien_truc_chu}.x-none.dat", os.path.join(tm_version, f"stream.{kien_truc_chu}.x-none.dat"), "Lõi Office siêu nặng (2/3)"),
-            (f"{base_url}/Office/Data/{version_hien_tai}/stream.{kien_truc_chu}.{ngon_ngu}.dat", os.path.join(tm_version, f"stream.{kien_truc_chu}.{ngon_ngu}.dat"), "Gói ngôn ngữ (3/3)")
+            (f"{base_url}/Office/Data/v{kien_truc_so}.cab", os.path.join(tm_data, f"v{kien_truc_so}.cab"), "Danh mục gốc"),
+            (f"{base_url}/Office/Data/v{kien_truc_so}_{version_hien_tai}.cab", os.path.join(tm_data, f"v{kien_truc_so}_{version_hien_tai}.cab"), "Danh mục phiên bản"),
+            (f"{base_url}/Office/Data/{version_hien_tai}/i{kien_truc_so}0.cab", os.path.join(tm_version, f"i{kien_truc_so}0.cab"), "Mục lục lõi (i0)"),
+            (f"{base_url}/Office/Data/{version_hien_tai}/s{kien_truc_so}0.cab", os.path.join(tm_version, f"s{kien_truc_so}0.cab"), "Mục lục lõi (s0)"),
+            (f"{base_url}/Office/Data/{version_hien_tai}/i{kien_truc_so}{ma_lcid}.cab", os.path.join(tm_version, f"i{kien_truc_so}{ma_lcid}.cab"), "Mục lục ngôn ngữ (iLang)"),
+            (f"{base_url}/Office/Data/{version_hien_tai}/s{kien_truc_so}{ma_lcid}.cab", os.path.join(tm_version, f"s{kien_truc_so}{ma_lcid}.cab"), "Mục lục ngôn ngữ (sLang)"),
+            (f"{base_url}/Office/Data/{version_hien_tai}/stream.{kien_truc_chu}.x-none.dat", os.path.join(tm_version, f"stream.{kien_truc_chu}.x-none.dat"), "Dữ liệu Office siêu nặng"),
+            (f"{base_url}/Office/Data/{version_hien_tai}/stream.{kien_truc_chu}.{ngon_ngu}.dat", os.path.join(tm_version, f"stream.{kien_truc_chu}.{ngon_ngu}.dat"), "Dữ liệu Ngôn ngữ")
         ]
 
         for url_tai, duong_dan_luu, ten_goi in danh_sach_tai:
@@ -409,6 +416,8 @@ class UngDungCaiDatOffice:
             return
 
         app_chon = [t for t, v in self.cac_bien_ung_dung.items() if v.get()]
+        
+        # BỔ SUNG AllowCdnFallback="True" LÀM KIM BÀI MIỄN TỬ
         xml_code = f"""<Configuration>\n  <Add SourcePath="{thu_muc_goc}" OfficeClientEdition="{kien_truc_so}" Channel="Current" Version="{version_hien_tai}" AllowCdnFallback="True">\n    <Product ID="{ma_san_pham}">\n      <Language ID="{ngon_ngu}" />\n"""
         for t, m in tu_dien_ung_dung.items():
             if t not in app_chon: xml_code += f'      <ExcludeApp ID="{m}" />\n'
