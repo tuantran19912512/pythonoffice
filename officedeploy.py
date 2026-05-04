@@ -6,16 +6,35 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 # ==============================================================================
-# TỪ ĐIỂN DỮ LIỆU CỦA MICROSOFT
+# TỪ ĐIỂN DỮ LIỆU CỦA MICROSOFT (ĐÃ BỔ SUNG HOME & BUSINESS, HOME & STUDENT)
 # ==============================================================================
 tu_dien_phien_ban = {
+    # Dòng ProPlus
     "2016_ProPlus": "ProPlusRetail",
     "2019_ProPlus": "ProPlus2019Retail",
     "2021_ProPlus": "ProPlus2021Retail",
     "2024_ProPlus": "ProPlus2024Retail",
     "365_ProPlus": "O365ProPlusRetail",
+    
+    # Dòng Standard
+    "2016_Standard": "StandardRetail",
+    "2019_Standard": "Standard2019Retail",
+    "2021_Standard": "Standard2021Retail",
     "2024_Standard": "Standard2024Retail",
-    "2021_Standard": "Standard2021Retail"
+    
+    # Dòng Home & Business
+    "2016_HomeBusiness": "HomeBusinessRetail",
+    "2019_HomeBusiness": "HomeBusiness2019Retail",
+    "2021_HomeBusiness": "HomeBusiness2021Retail",
+    "2024_HomeBusiness": "HomeBusiness2024Retail",
+    "365_HomeBusiness": "O365BusinessRetail",
+    
+    # Dòng Home & Student (Lưu ý: 2024 Microsoft đổi mã thành Home2024)
+    "2016_HomeStudent": "HomeStudentRetail",
+    "2019_HomeStudent": "HomeStudent2019Retail",
+    "2021_HomeStudent": "HomeStudent2021Retail",
+    "2024_HomeStudent": "Home2024Retail",
+    "365_HomeStudent": "O365HomePremRetail"
 }
 
 tu_dien_ung_dung = {
@@ -87,7 +106,9 @@ class UngDungCaiDatOffice:
             tk.Radiobutton(khung_phien_ban, text=ten_ban, variable=self.bien_phien_ban, value=ten_ban.split()[-1], bg="white").grid(row=0, column=vi_tri, padx=5, pady=5)
             
         tk.Label(khung_phien_ban, text="Phiên bản con:", bg="white").grid(row=1, column=0, columnspan=2, sticky="e", padx=5)
-        self.hop_chon_ban_con = ttk.Combobox(khung_phien_ban, values=["ProPlus", "Standard"], state="readonly", width=40)
+        
+        # BỔ SUNG CÁC BẢN CON MỚI VÀO COMBOBOX
+        self.hop_chon_ban_con = ttk.Combobox(khung_phien_ban, values=["ProPlus", "Standard", "Home & Business", "Home & Student"], state="readonly", width=40)
         self.hop_chon_ban_con.current(0)
         self.hop_chon_ban_con.grid(row=1, column=2, columnspan=3, sticky="w", pady=5)
 
@@ -141,16 +162,14 @@ class UngDungCaiDatOffice:
     # CÁC HÀM XỬ LÝ LÕI BACKEND
     # ==========================================================================
     def tao_file_cauhinh_xml(self, phien_ban_tong_hop, kien_truc, ngon_ngu, danh_sach_app_chon):
-        ma_san_pham = tu_dien_phien_ban.get(phien_ban_tong_hop, "ProPlus2024Retail")
+        ma_san_pham = tu_dien_phien_ban.get(phien_ban_tong_hop, "ProPlus2024Retail") # Mặc định lấy ProPlus2024 nếu lỗi
         ma_ngon_ngu = "vi-vn" if "Vietnamese" in ngon_ngu else "en-us"
         
-        # Viết mã cấu hình chuẩn của Microsoft ODT
         noi_dung_xml = f"""<Configuration>
   <Add OfficeClientEdition="{kien_truc}" Channel="Current">
     <Product ID="{ma_san_pham}">
       <Language ID="{ma_ngon_ngu}" />\n"""
 
-        # Loại bỏ những ứng dụng người dùng KHÔNG tích chọn
         for ten_app, ma_app in tu_dien_ung_dung.items():
             if ten_app not in danh_sach_app_chon:
                 noi_dung_xml += f'      <ExcludeApp ID="{ma_app}" />\n'
@@ -186,15 +205,17 @@ class UngDungCaiDatOffice:
         return duong_dan_file_setup
 
     def khoi_dong_luong_cai_dat(self):
-        # Dùng luồng chạy riêng để giao diện không bị treo khi đang tải/cài đặt
         luong_xu_ly = threading.Thread(target=self.tien_trinh_cai_dat_ngam, daemon=True)
         luong_xu_ly.start()
 
     def tien_trinh_cai_dat_ngam(self):
-        # 1. Thu thập dữ liệu từ các thao tác trên giao diện
         nam_phien_ban = self.bien_phien_ban.get()
-        ban_con = self.hop_chon_ban_con.get()
-        phien_ban_tong_hop = f"{nam_phien_ban}_{ban_con}"
+        
+        # Xử lý chuỗi hiển thị: "Home & Business" -> "HomeBusiness" để khớp với Từ điển
+        ban_con_hien_thi = self.hop_chon_ban_con.get()
+        ban_con_dinh_dang = ban_con_hien_thi.replace(" & ", "").replace(" ", "")
+        
+        phien_ban_tong_hop = f"{nam_phien_ban}_{ban_con_dinh_dang}"
         
         kien_truc_chon = self.bien_kien_truc.get()
         ngon_ngu_chon = self.hop_chon_ngon_ngu.get()
@@ -204,18 +225,14 @@ class UngDungCaiDatOffice:
             if bien_tich.get() == True:
                 danh_sach_app_duoc_chon.append(ten_app)
 
-        # 2. Tạo file Cấu Hình
         self.cap_nhat_trang_thai("⏳ Đang thiết lập cấu hình XML...")
         duong_dan_xml = self.tao_file_cauhinh_xml(phien_ban_tong_hop, kien_truc_chon, ngon_ngu_chon, danh_sach_app_duoc_chon)
         
-        # 3. Chuẩn bị file chạy
         duong_dan_setup = self.chuan_bi_cong_cu_odt()
         
-        # 4. Ra lệnh tiến hành cài đặt
         if duong_dan_setup and os.path.exists(duong_dan_setup):
             self.cap_nhat_trang_thai("🚀 Đang mở trình cài đặt của Microsoft. Băng thông Max Speed!")
             try:
-                # Kích hoạt setup.exe gốc của Microsoft
                 subprocess.Popen([duong_dan_setup, "/configure", duong_dan_xml])
             except Exception as loi_thuc_thi:
                 messagebox.showerror("Lỗi chạy ứng dụng", f"Không thể bắt đầu cài đặt: {loi_thuc_thi}")
@@ -224,7 +241,6 @@ class UngDungCaiDatOffice:
             self.cap_nhat_trang_thai("❌ Lỗi: Thiếu công cụ setup.exe!")
 
     def cap_nhat_trang_thai(self, noi_dung_thong_bao):
-        # Hàm đẩy thông báo lên giao diện an toàn giữa các luồng
         self.cua_so.after(0, lambda: self.nhan_trang_thai.config(text=noi_dung_thong_bao))
 
 # ==============================================================================
