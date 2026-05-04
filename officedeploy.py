@@ -2,6 +2,7 @@ import os
 import subprocess
 import urllib.request
 import threading
+import time
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -9,24 +10,15 @@ from tkinter import ttk, messagebox
 # TỪ ĐIỂN DỮ LIỆU CỦA MICROSOFT
 # ==============================================================================
 tu_dien_phien_ban = {
-    "2016_ProPlus": "ProPlusRetail",
-    "2019_ProPlus": "ProPlus2019Retail",
-    "2021_ProPlus": "ProPlus2021Retail",
-    "2024_ProPlus": "ProPlus2024Retail",
-    "365_ProPlus": "O365ProPlusRetail",
-    "2016_Standard": "StandardRetail",
-    "2019_Standard": "Standard2019Retail",
-    "2021_Standard": "Standard2021Retail",
-    "2024_Standard": "Standard2024Retail",
-    "2016_HomeBusiness": "HomeBusinessRetail",
-    "2019_HomeBusiness": "HomeBusiness2019Retail",
-    "2021_HomeBusiness": "HomeBusiness2021Retail",
-    "2024_HomeBusiness": "HomeBusiness2024Retail",
-    "365_HomeBusiness": "O365BusinessRetail",
-    "2016_HomeStudent": "HomeStudentRetail",
-    "2019_HomeStudent": "HomeStudent2019Retail",
-    "2021_HomeStudent": "HomeStudent2021Retail",
-    "2024_HomeStudent": "Home2024Retail",
+    "2016_ProPlus": "ProPlusRetail", "2019_ProPlus": "ProPlus2019Retail",
+    "2021_ProPlus": "ProPlus2021Retail", "2024_ProPlus": "ProPlus2024Retail",
+    "365_ProPlus": "O365ProPlusRetail", "2016_Standard": "StandardRetail",
+    "2019_Standard": "Standard2019Retail", "2021_Standard": "Standard2021Retail",
+    "2024_Standard": "Standard2024Retail", "2016_HomeBusiness": "HomeBusinessRetail",
+    "2019_HomeBusiness": "HomeBusiness2019Retail", "2021_HomeBusiness": "HomeBusiness2021Retail",
+    "2024_HomeBusiness": "HomeBusiness2024Retail", "365_HomeBusiness": "O365BusinessRetail",
+    "2016_HomeStudent": "HomeStudentRetail", "2019_HomeStudent": "HomeStudent2019Retail",
+    "2021_HomeStudent": "HomeStudent2021Retail", "2024_HomeStudent": "Home2024Retail",
     "365_HomeStudent": "O365HomePremRetail"
 }
 
@@ -43,7 +35,7 @@ def tao_nut_bam_mau(khung_chua, chu_hien_thi, mau_nen, mau_chu="white", hanh_don
     nut_bam = tk.Button(
         khung_chua, text=chu_hien_thi, bg=mau_nen, fg=mau_chu,
         font=("Segoe UI", 9, "bold"), relief="flat", cursor="hand2",
-        command=hanh_dong, width=18, pady=6
+        command=hanh_dong, width=20, pady=6
     )
     return nut_bam
 
@@ -53,8 +45,8 @@ def tao_nut_bam_mau(khung_chua, chu_hien_thi, mau_nen, mau_chu="white", hanh_don
 class UngDungCaiDatOffice:
     def __init__(self, cua_so_chinh):
         self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - Trực tiếp từ Server CDN")
-        self.cua_so.geometry("620x680")
+        self.cua_so.title("Cài đặt Microsoft Office - Trực tiếp từ Server CDN (V3 Full)")
+        self.cua_so.geometry("630x750")
         self.cua_so.resizable(False, False)
 
         self.phong_chu_thuong = ("Segoe UI", 9)
@@ -69,7 +61,7 @@ class UngDungCaiDatOffice:
         
         tk.Label(khung_tieu_de, text="🏢 CÀI ĐẶT MICROSOFT OFFICE RETAIL", font=("Segoe UI", 14, "bold"), bg="#E64A19", fg="white").place(x=15, y=8)
         tk.Label(khung_tieu_de, text="Tải trực tiếp Max Speed từ Server Microsoft (CDN)", font=("Segoe UI", 9), bg="#E64A19", fg="white").place(x=40, y=35)
-        tk.Label(khung_tieu_de, text="🌐 ONLINE", font=("Segoe UI", 10, "bold"), bg="#E64A19", fg="white").place(x=520, y=18)
+        tk.Label(khung_tieu_de, text="🌐 ONLINE", font=("Segoe UI", 10, "bold"), bg="#E64A19", fg="white").place(x=530, y=18)
 
         # --- KHUNG CHỨA TAB ---
         hop_tab = ttk.Notebook(self.cua_so)
@@ -78,7 +70,7 @@ class UngDungCaiDatOffice:
         tab_cai_dat = ttk.Frame(hop_tab)
         tab_go_cai_dat = ttk.Frame(hop_tab)
 
-        hop_tab.add(tab_cai_dat, text="  ⚙️ Cài đặt Office  ")
+        hop_tab.add(tab_cai_dat, text="  ⚙️ Cài đặt & Kích hoạt  ")
         hop_tab.add(tab_go_cai_dat, text="  🗑️ Gỡ Cài Đặt & Dọn Dẹp  ")
 
         self.xay_dung_tab_cai_dat(tab_cai_dat)
@@ -88,16 +80,16 @@ class UngDungCaiDatOffice:
         khung_trang_thai = tk.Frame(self.cua_so, bg="#E0F7FA")
         khung_trang_thai.pack(fill="x", padx=12, pady=(0, 12))
         
-        self.nhan_trang_thai = tk.Label(khung_trang_thai, text="✅ Sẵn sàng kết nối tới máy chủ Microsoft...", font=self.phong_chu_dam, fg="#2E7D32", bg="#E0F7FA")
+        self.nhan_trang_thai = tk.Label(khung_trang_thai, text="✅ Sẵn sàng kết nối tới hệ thống...", font=self.phong_chu_dam, fg="#2E7D32", bg="#E0F7FA")
         self.nhan_trang_thai.pack(anchor="w", padx=10, pady=10)
 
     # --------------------------------------------------------------------------
-    # TAB 1: CÀI ĐẶT OFFICE
+    # TAB 1: CÀI ĐẶT & KÍCH HOẠT OFFICE
     # --------------------------------------------------------------------------
     def xay_dung_tab_cai_dat(self, tab):
         # 1. KHUNG PHIÊN BẢN
         khung_phien_ban = ttk.LabelFrame(tab, text=" 📄 Phiên bản Office ")
-        khung_phien_ban.pack(fill="x", padx=10, pady=10, ipady=5)
+        khung_phien_ban.pack(fill="x", padx=10, pady=8, ipady=5)
         
         self.bien_phien_ban = tk.StringVar(value="2024")
         danh_sach_ban = ["Office 2016", "Office 2019", "Office 2021", "Office 2024", "Office 365"]
@@ -105,7 +97,7 @@ class UngDungCaiDatOffice:
         khung_rb_phien_ban = ttk.Frame(khung_phien_ban)
         khung_rb_phien_ban.pack(fill="x", padx=10, pady=5)
         for vi_tri, ten_ban in enumerate(danh_sach_ban):
-            ttk.Radiobutton(khung_rb_phien_ban, text=ten_ban, variable=self.bien_phien_ban, value=ten_ban.split()[-1]).grid(row=0, column=vi_tri, padx=8)
+            ttk.Radiobutton(khung_rb_phien_ban, text=ten_ban, variable=self.bien_phien_ban, value=ten_ban.split()[-1]).grid(row=0, column=vi_tri, padx=6)
             
         khung_cb_phien_ban = ttk.Frame(khung_phien_ban)
         khung_cb_phien_ban.pack(fill="x", padx=10, pady=5)
@@ -116,23 +108,23 @@ class UngDungCaiDatOffice:
 
         # 2. KHUNG KIẾN TRÚC & NGÔN NGỮ
         khung_ngang = ttk.Frame(tab)
-        khung_ngang.pack(fill="x", padx=10, pady=5)
+        khung_ngang.pack(fill="x", padx=10, pady=8)
         
         khung_kien_truc = ttk.LabelFrame(khung_ngang, text=" ⚙️ Kiến trúc ")
         khung_kien_truc.pack(side="left", fill="both", expand=True, padx=(0, 5))
         self.bien_kien_truc = tk.StringVar(value="64")
-        ttk.Radiobutton(khung_kien_truc, text="64-bit", variable=self.bien_kien_truc, value="64").pack(side="left", padx=15, pady=10)
-        ttk.Radiobutton(khung_kien_truc, text="32-bit", variable=self.bien_kien_truc, value="32").pack(side="right", padx=15, pady=10)
+        ttk.Radiobutton(khung_kien_truc, text="64-bit", variable=self.bien_kien_truc, value="64").pack(side="left", padx=15, pady=8)
+        ttk.Radiobutton(khung_kien_truc, text="32-bit", variable=self.bien_kien_truc, value="32").pack(side="right", padx=15, pady=8)
 
         khung_ngon_ngu = ttk.LabelFrame(khung_ngang, text=" 🌐 Ngôn ngữ ")
         khung_ngon_ngu.pack(side="right", fill="both", expand=True, padx=(5, 0))
         self.hop_chon_ngon_ngu = ttk.Combobox(khung_ngon_ngu, values=["English (US) - en-us", "Vietnamese - vi-vn"], state="readonly")
         self.hop_chon_ngon_ngu.current(0)
-        self.hop_chon_ngon_ngu.pack(fill="x", padx=10, pady=10)
+        self.hop_chon_ngon_ngu.pack(fill="x", padx=10, pady=8)
 
         # 3. KHUNG ỨNG DỤNG
         khung_ung_dung = ttk.LabelFrame(tab, text=" ☑️ Chọn ứng dụng cần cài ")
-        khung_ung_dung.pack(fill="x", padx=10, pady=10)
+        khung_ung_dung.pack(fill="x", padx=10, pady=8)
         
         danh_sach_app = [
             ("Access", 0, 0), ("Excel", 0, 1), ("Word", 0, 2),
@@ -144,11 +136,13 @@ class UngDungCaiDatOffice:
         for ten_app, hang, cot in danh_sach_app:
             bien_tich = tk.BooleanVar(value=True)
             self.cac_bien_ung_dung[ten_app] = bien_tich
-            ttk.Checkbutton(khung_ung_dung, text=f" {ten_app}", variable=bien_tich).grid(row=hang, column=cot, sticky="w", padx=25, pady=8)
+            ttk.Checkbutton(khung_ung_dung, text=f" {ten_app}", variable=bien_tich).grid(row=hang, column=cot, sticky="w", padx=25, pady=6)
 
-        # 4. NÚT BẤM CÀI ĐẶT
+        # 4. NÚT BẤM
         khung_nut_bam = ttk.Frame(tab)
         khung_nut_bam.pack(fill="x", padx=10, pady=10)
+        
+        tao_nut_bam_mau(khung_nut_bam, "💊 KÍCH HOẠT OHOOK", "#F57C00", hanh_dong=self.khoi_dong_thuoc_ohook).pack(side="left", padx=5)
         tao_nut_bam_mau(khung_nut_bam, "⚙ BẮT ĐẦU CÀI ĐẶT", "#0288D1", hanh_dong=self.khoi_dong_luong_cai_dat).pack(side="right", padx=5)
 
     # --------------------------------------------------------------------------
@@ -157,23 +151,27 @@ class UngDungCaiDatOffice:
     def xay_dung_tab_go_cai_dat(self, tab):
         # 1. KHUNG GỠ OFFICE
         khung_go_office = ttk.LabelFrame(tab, text=" 🗑️ Gỡ Cài Đặt Office Toàn Diện ")
-        khung_go_office.pack(fill="x", padx=10, pady=15)
-        
-        ttk.Label(khung_go_office, text="Thao tác này sẽ gọi trình gỡ cài đặt gốc của Microsoft để xóa sạch\ntoàn bộ các phiên bản Office (Word, Excel...) đang có trên máy tính.", justify="left").pack(anchor="w", padx=15, pady=10)
-        
+        khung_go_office.pack(fill="x", padx=10, pady=10)
+        ttk.Label(khung_go_office, text="Thao tác này sẽ gọi trình gỡ cài đặt gốc của Microsoft để xóa sạch\ntoàn bộ các phiên bản Office (Word, Excel...) đang có trên máy tính.", justify="left").pack(anchor="w", padx=15, pady=5)
         khung_nut_go = ttk.Frame(khung_go_office)
         khung_nut_go.pack(fill="x", padx=10, pady=5)
         tao_nut_bam_mau(khung_nut_go, "🗑 BẮT ĐẦU GỠ OFFICE", "#D32F2F", hanh_dong=self.khoi_dong_luong_go_office).pack(side="right", padx=5, pady=5)
 
-        # 2. KHUNG GỠ CRACK / RESET BẢN QUYỀN
-        khung_go_crack = ttk.LabelFrame(tab, text=" 🧹 Gỡ Crack / Reset Bản Quyền (KMS) ")
-        khung_go_crack.pack(fill="x", padx=10, pady=10)
-        
-        ttk.Label(khung_go_crack, text="Dọn dẹp các máy chủ KMS ảo, làm sạch Registry kích hoạt lậu và\nđưa trạng thái bản quyền Office về như máy mới (Rearm).", justify="left").pack(anchor="w", padx=15, pady=10)
-        
-        khung_nut_crack = ttk.Frame(khung_go_crack)
-        khung_nut_crack.pack(fill="x", padx=10, pady=5)
-        tao_nut_bam_mau(khung_nut_crack, "🧹 DỌN DẸP BẢN QUYỀN", "#F57C00", hanh_dong=self.tien_trinh_go_crack_ngam).pack(side="right", padx=5, pady=5)
+        # 2. KHUNG GỠ CRACK KMS
+        khung_go_kms = ttk.LabelFrame(tab, text=" 🧹 Gỡ Crack KMS / Reset Bản Quyền ")
+        khung_go_kms.pack(fill="x", padx=10, pady=10)
+        ttk.Label(khung_go_kms, text="Dọn dẹp các máy chủ KMS ảo, làm sạch Registry kích hoạt lậu và\nđưa trạng thái bản quyền Office về như máy mới (Rearm).", justify="left").pack(anchor="w", padx=15, pady=5)
+        khung_nut_kms = ttk.Frame(khung_go_kms)
+        khung_nut_kms.pack(fill="x", padx=10, pady=5)
+        tao_nut_bam_mau(khung_nut_kms, "🧹 DỌN DẸP KMS", "#1976D2", hanh_dong=self.tien_trinh_go_kms_ngam).pack(side="right", padx=5, pady=5)
+
+        # 3. KHUNG GỠ CRACK OHOOK
+        khung_go_ohook = ttk.LabelFrame(tab, text=" 💊 Gỡ Crack Ohook ")
+        khung_go_ohook.pack(fill="x", padx=10, pady=10)
+        ttk.Label(khung_go_ohook, text="Gỡ bỏ hoàn toàn Hook kích hoạt bản quyền vĩnh viễn (Ohook)\nvà trả lại các file hệ thống nguyên bản cho ứng dụng Office.", justify="left").pack(anchor="w", padx=15, pady=5)
+        khung_nut_ohook = ttk.Frame(khung_go_ohook)
+        khung_nut_ohook.pack(fill="x", padx=10, pady=5)
+        tao_nut_bam_mau(khung_nut_ohook, "🛡️ GỠ OHOOK TRỰC ĐỂ", "#7B1FA2", hanh_dong=self.khoi_dong_go_ohook).pack(side="right", padx=5, pady=5)
 
     # ==========================================================================
     # CÁC HÀM XỬ LÝ LÕI BACKEND
@@ -199,20 +197,11 @@ class UngDungCaiDatOffice:
         ma_san_pham = tu_dien_phien_ban.get(phien_ban_tong_hop, "ProPlus2024Retail")
         ma_ngon_ngu = "vi-vn" if "Vietnamese" in ngon_ngu else "en-us"
         
-        noi_dung_xml = f"""<Configuration>
-  <Add OfficeClientEdition="{kien_truc}" Channel="Current">
-    <Product ID="{ma_san_pham}">
-      <Language ID="{ma_ngon_ngu}" />\n"""
-
+        noi_dung_xml = f"""<Configuration>\n  <Add OfficeClientEdition="{kien_truc}" Channel="Current">\n    <Product ID="{ma_san_pham}">\n      <Language ID="{ma_ngon_ngu}" />\n"""
         for ten_app, ma_app in tu_dien_ung_dung.items():
             if ten_app not in danh_sach_app_chon:
                 noi_dung_xml += f'      <ExcludeApp ID="{ma_app}" />\n'
-
-        noi_dung_xml += """    </Product>
-  </Add>
-  <Updates Enabled="TRUE" Channel="Current" />
-  <Display Level="Full" AcceptEULA="TRUE" />
-</Configuration>"""
+        noi_dung_xml += """    </Product>\n  </Add>\n  <Updates Enabled="TRUE" Channel="Current" />\n  <Display Level="Full" AcceptEULA="TRUE" />\n</Configuration>"""
 
         duong_dan = os.path.join(os.getcwd(), "CauHinhCaiDat.xml")
         with open(duong_dan, "w", encoding="utf-8") as f: f.write(noi_dung_xml)
@@ -230,7 +219,7 @@ class UngDungCaiDatOffice:
 
         danh_sach_app_duoc_chon = [ten for ten, bien in self.cac_bien_ung_dung.items() if bien.get()]
 
-        self.cap_nhat_trang_thai("⏳ Đang thiết lập cấu hình cài đặt...")
+        self.cap_nhat_trang_thai("⏳ Đang thiết lập cấu hình cài đặt XML...")
         duong_dan_xml = self.tao_file_xml_cai_dat(phien_ban_tong_hop, kien_truc_chon, ngon_ngu_chon, danh_sach_app_duoc_chon)
         duong_dan_setup = self.chuan_bi_cong_cu_odt()
         
@@ -239,66 +228,77 @@ class UngDungCaiDatOffice:
             try:
                 subprocess.Popen([duong_dan_setup, "/configure", duong_dan_xml])
             except Exception as e:
-                messagebox.showerror("Lỗi", f"Không thể bắt đầu cài đặt: {e}")
                 self.cap_nhat_trang_thai("❌ Đã xảy ra lỗi.")
         else:
             self.cap_nhat_trang_thai("❌ Lỗi: Thiếu công cụ setup.exe!")
 
     # ---------- LOGIC GỠ CÀI ĐẶT ----------
     def khoi_dong_luong_go_office(self):
-        hoi_dap = messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn gỡ toàn bộ Office khỏi máy tính không?")
-        if hoi_dap:
+        if messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn gỡ toàn bộ Office khỏi máy tính không?"):
             threading.Thread(target=self.tien_trinh_go_office_ngam, daemon=True).start()
 
     def tien_trinh_go_office_ngam(self):
         self.cap_nhat_trang_thai("⏳ Đang thiết lập cấu hình gỡ cài đặt...")
         noi_dung_xml = """<Configuration>\n  <Remove All="True" />\n  <Display Level="Full" AcceptEULA="TRUE" />\n</Configuration>"""
         duong_dan_xml = os.path.join(os.getcwd(), "CauHinhGoCaiDat.xml")
-        
         with open(duong_dan_xml, "w", encoding="utf-8") as f: f.write(noi_dung_xml)
-        duong_dan_setup = self.chuan_bi_cong_cu_odt()
         
+        duong_dan_setup = self.chuan_bi_cong_cu_odt()
         if duong_dan_setup and os.path.exists(duong_dan_setup):
             self.cap_nhat_trang_thai("🚀 Đang chạy trình gỡ cài đặt của Microsoft...")
-            try:
-                subprocess.Popen([duong_dan_setup, "/configure", duong_dan_xml])
-            except Exception as e:
-                messagebox.showerror("Lỗi", f"Không thể bắt đầu gỡ cài đặt: {e}")
-                self.cap_nhat_trang_thai("❌ Đã xảy ra lỗi.")
+            subprocess.Popen([duong_dan_setup, "/configure", duong_dan_xml])
 
-    # ---------- LOGIC GỠ CRACK / KMS ----------
-    def tien_trinh_go_crack_ngam(self):
-        hoi_dap = messagebox.askyesno("Xác nhận", "Bạn có muốn xóa thông tin máy chủ KMS và Reset trạng thái bản quyền Office không?")
-        if not hoi_dap: return
+    # ---------- LOGIC GỠ CRACK KMS ----------
+    def tien_trinh_go_kms_ngam(self):
+        if not messagebox.askyesno("Xác nhận", "Bạn có muốn xóa thông tin máy chủ KMS và Reset trạng thái bản quyền Office không?"): return
+        self.cap_nhat_trang_thai("⏳ Đang tìm kiếm và dọn dẹp hệ thống KMS...")
         
-        self.cap_nhat_trang_thai("⏳ Đang tìm kiếm và dọn dẹp hệ thống KMS/Crack...")
-        
-        # Đường dẫn mặc định của script quản lý bản quyền Office
         cac_thu_muc = [
             os.environ.get("ProgramFiles", "C:\\Program Files") + "\\Microsoft Office\\Office16",
             os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)") + "\\Microsoft Office\\Office16"
         ]
         
-        file_ospp = None
-        for thu_muc in cac_thu_muc:
-            if os.path.exists(os.path.join(thu_muc, "ospp.vbs")):
-                file_ospp = os.path.join(thu_muc, "ospp.vbs")
-                break
-                
+        file_ospp = next((os.path.join(tm, "ospp.vbs") for tm in cac_thu_muc if os.path.exists(os.path.join(tm, "ospp.vbs"))), None)
         if file_ospp:
             try:
-                # 1. Gỡ bỏ địa chỉ máy chủ KMS ảo
                 subprocess.run(["cscript", "//nologo", file_ospp, "/remhst"], creationflags=subprocess.CREATE_NO_WINDOW)
-                # 2. Đặt lại trạng thái bản quyền gốc (Rearm)
                 subprocess.run(["cscript", "//nologo", file_ospp, "/rearm"], creationflags=subprocess.CREATE_NO_WINDOW)
-                
                 self.cap_nhat_trang_thai("✅ Đã dọn dẹp sạch bản quyền KMS cũ!")
-                messagebox.showinfo("Thành công", "Đã xóa máy chủ KMS ảo và Reset trạng thái bản quyền thành công.\nVui lòng khởi động lại máy tính để thay đổi có hiệu lực triệt để.")
-            except Exception as e:
-                self.cap_nhat_trang_thai("❌ Lỗi trong quá trình dọn dẹp.")
+                messagebox.showinfo("Thành công", "Đã xóa KMS ảo và Reset trạng thái bản quyền.\nVui lòng khởi động lại máy tính.")
+            except Exception:
+                self.cap_nhat_trang_thai("❌ Lỗi trong quá trình dọn dẹp KMS.")
         else:
-            self.cap_nhat_trang_thai("⚠️ Không tìm thấy file quản lý bản quyền gốc. Có thể Office đã bị gỡ.")
-            messagebox.showwarning("Thông báo", "Máy tính hiện không có Office 16/19/21/24/365 hoặc file bản quyền hệ thống đã bị xóa.")
+            self.cap_nhat_trang_thai("⚠️ Không tìm thấy file hệ thống Office. Có thể Office đã bị gỡ.")
+
+    # ---------- LOGIC XỬ LÝ OHOOK (GIST) ----------
+    def tai_va_chay_gist(self, tham_so, loi_nhan_thanh_cong):
+        url_gist = f"https://gist.githubusercontent.com/tuantran19912512/81329d670436ea8492b73bd5889ad444/raw/Ohook.cmd?t={time.time()}"
+        file_tam = os.path.join(os.environ['TEMP'], "Ohook_Script.cmd")
+        try:
+            noi_dung = urllib.request.urlopen(url_gist).read().decode('utf-8')
+            noi_dung = noi_dung.replace("\r\n", "\n").replace("\n", "\r\n") + "\r\n\r\n"
+            with open(file_tam, 'w', encoding='utf-8') as f: f.write(noi_dung)
+            
+            tien_trinh = subprocess.Popen(["cmd.exe", "/c", file_tam, tham_so], creationflags=subprocess.CREATE_NO_WINDOW)
+            tien_trinh.wait()
+            
+            self.cap_nhat_trang_thai(loi_nhan_thanh_cong)
+            messagebox.showinfo("Thành công", loi_nhan_thanh_cong[2:])
+        except Exception as e:
+            self.cap_nhat_trang_thai("❌ Lỗi kết nối mạng hoặc lỗi thực thi Gist.")
+        finally:
+            if os.path.exists(file_tam):
+                try: os.remove(file_tam)
+                except: pass
+
+    def khoi_dong_thuoc_ohook(self):
+        self.cap_nhat_trang_thai("⏳ Đang tải và kích hoạt Ohook Silent...")
+        threading.Thread(target=self.tai_va_chay_gist, args=("/Ohook", "✅ Đã KÍCH HOẠT thành công bản quyền Ohook!"), daemon=True).start()
+
+    def khoi_dong_go_ohook(self):
+        if not messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn gỡ bỏ hoàn toàn Crack Ohook không?"): return
+        self.cap_nhat_trang_thai("⏳ Đang tải cấu hình gỡ Ohook...")
+        threading.Thread(target=self.tai_va_chay_gist, args=("/OhookUninstall", "✅ Đã GỠ BỎ Ohook và khôi phục file gốc thành công!"), daemon=True).start()
 
     def cap_nhat_trang_thai(self, noi_dung_thong_bao):
         self.cua_so.after(0, lambda: self.nhan_trang_thai.config(text=noi_dung_thong_bao))
