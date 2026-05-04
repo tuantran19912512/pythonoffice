@@ -232,8 +232,8 @@ class TienIchHeThong:
 class TrienKhaiOffice(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("VietToolbox - Triển khai Microsoft Office (V10.0 Lõi Kép)")
-        self.geometry("640x720")
+        self.title("VietToolbox - Triển khai Microsoft Office (V10.1 Rescue Edition)")
+        self.geometry("640x780") # Nới rộng khung dọc một chút để chứa nút Cứu Hộ
         self.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
         self.thu_muc_lam_viec = tk.StringVar(value=os.getcwd())
@@ -333,25 +333,34 @@ class TrienKhaiOffice(tk.Tk):
 
     def thiet_ke_tab_go_cai_dat(self, tab):
         khung_go_office = ttk.LabelFrame(tab, text=" 🗑️ VietToolbox Deep Clean (Gỡ Cài Đặt + Xóa Sạch Registry) ")
-        khung_go_office.pack(fill="x", padx=10, pady=10)
-        ttk.Label(khung_go_office, text="Chức năng này gọi bộ gỡ chuẩn của Microsoft, sau đó sử dụng thuật toán\ncủa VietToolbox để rà soát và tiêu diệt mọi file rác, khóa Registry tồn đọng.", justify="left").pack(anchor="w", padx=15, pady=5)
+        khung_go_office.pack(fill="x", padx=10, pady=7)
+        ttk.Label(khung_go_office, text="Chức năng này gọi bộ gỡ chuẩn của Microsoft, sau đó sử dụng thuật toán\ncủa VietToolbox để rà soát và tiêu diệt mọi file rác, khóa Registry tồn đọng.", justify="left").pack(anchor="w", padx=15, pady=3)
         khung_nut_go = ttk.Frame(khung_go_office)
         khung_nut_go.pack(fill="x", padx=10, pady=5)
-        self.tao_nut_bam(khung_nut_go, "🗑 BẮT ĐẦU GỠ & CLEAN", "#D32F2F", hanh_dong=self.hanh_dong_go_office).pack(side="right", padx=5, pady=5)
+        self.tao_nut_bam(khung_nut_go, "🗑 BẮT ĐẦU GỠ & CLEAN", "#D32F2F", hanh_dong=self.hanh_dong_go_office).pack(side="right", padx=5, pady=2)
 
         khung_go_kms = ttk.LabelFrame(tab, text=" 🧹 Dọn dẹp máy chủ KMS ảo ")
-        khung_go_kms.pack(fill="x", padx=10, pady=10)
-        ttk.Label(khung_go_kms, text="Bóc tách và xóa bỏ mọi cấu hình kích hoạt lậu KMS cũ, đưa trạng thái\nbản quyền Office về nguyên bản (Rearm).", justify="left").pack(anchor="w", padx=15, pady=5)
+        khung_go_kms.pack(fill="x", padx=10, pady=7)
+        ttk.Label(khung_go_kms, text="Bóc tách và xóa bỏ mọi cấu hình kích hoạt lậu KMS cũ, đưa trạng thái\nbản quyền Office về nguyên bản (Rearm).", justify="left").pack(anchor="w", padx=15, pady=3)
         khung_nut_kms = ttk.Frame(khung_go_kms)
         khung_nut_kms.pack(fill="x", padx=10, pady=5)
-        self.tao_nut_bam(khung_nut_kms, "🧹 DỌN SẠCH KMS", "#1976D2", hanh_dong=self.hanh_dong_go_kms).pack(side="right", padx=5, pady=5)
+        self.tao_nut_bam(khung_nut_kms, "🧹 DỌN SẠCH KMS", "#1976D2", hanh_dong=self.hanh_dong_go_kms).pack(side="right", padx=5, pady=2)
 
         khung_go_ohook = ttk.LabelFrame(tab, text=" 💊 Gỡ Crack Ohook ")
-        khung_go_ohook.pack(fill="x", padx=10, pady=10)
-        ttk.Label(khung_go_ohook, text="Xóa sạch mã nhúng Ohook và hoàn nguyên cấu trúc thư mục bảo mật.", justify="left").pack(anchor="w", padx=15, pady=5)
+        khung_go_ohook.pack(fill="x", padx=10, pady=7)
+        ttk.Label(khung_go_ohook, text="Xóa sạch mã nhúng Ohook và hoàn nguyên cấu trúc thư mục bảo mật.", justify="left").pack(anchor="w", padx=15, pady=3)
         khung_nut_ohook = ttk.Frame(khung_go_ohook)
         khung_nut_ohook.pack(fill="x", padx=10, pady=5)
-        self.tao_nut_bam(khung_nut_ohook, "🛡️ RÚT THUỐC OHOOK", "#7B1FA2", hanh_dong=self.hanh_dong_rut_thuoc_ohook).pack(side="right", padx=5, pady=5)
+        self.tao_nut_bam(khung_nut_ohook, "🛡️ RÚT THUỐC OHOOK", "#7B1FA2", hanh_dong=self.hanh_dong_rut_thuoc_ohook).pack(side="right", padx=5, pady=2)
+
+        # TÍNH NĂNG MỚI V10.1: CỨU HỘ MÁY LỖI
+        khung_cuu_ho = ttk.LabelFrame(tab, text=" 🆘 CỨU HỘ KHẨN CẤP: LỖI KẸT BỘ CÀI (ZOMBIE) ")
+        khung_cuu_ho.pack(fill="x", padx=10, pady=7)
+        ttk.Label(khung_cuu_ho, text="Chỉ dùng khi bị mất Registry không thể gỡ qua Control Panel, cài mới thì báo lỗi.\nTính năng này sẽ xóa ép buộc dịch vụ ClickToRunSvc lõi.", justify="left").pack(anchor="w", padx=15, pady=3)
+        khung_nut_cuu_ho = ttk.Frame(khung_cuu_ho)
+        khung_nut_cuu_ho.pack(fill="x", padx=10, pady=5)
+        self.tao_nut_bam(khung_nut_cuu_ho, "🆘 XÓA ÉP BUỘC C2R", "#E65100", hanh_dong=self.hanh_dong_cuu_ho_zombie).pack(side="right", padx=5, pady=2)
+
 
     def cap_nhat_danh_sach_ban_con(self, *args):
         if self.bien_nam_phien_ban.get() == "365":
@@ -525,10 +534,8 @@ class TrienKhaiOffice(tk.Tk):
         
         if ma_tra_ve == 0:
             if messagebox.askyesno("Dọn dẹp", "Cài đặt thành công!\nBạn có muốn XÓA thư mục 2.9GB tải về để tiết kiệm ổ cứng không?"):
-                try:
-                    shutil.rmtree(os.path.join(thu_muc_goc, "Office"))
-                except:
-                    pass
+                try: shutil.rmtree(os.path.join(thu_muc_goc, "Office"))
+                except: pass
             
             if self.bien_tu_dong_shortcut.get():
                 TienIchHeThong.tao_loi_tat_man_hinh(self.cap_nhat_trang_thai)
@@ -610,6 +617,43 @@ class TrienKhaiOffice(tk.Tk):
             return
         self.cap_nhat_trang_thai("⏳ Đang thanh lọc Ohook khỏi hệ thống...")
         threading.Thread(target=self.luong_xu_ly_thuoc_chung, args=("/OhookUninstall", "✅ Đã rút thuốc và khôi phục sự trong sạch cho Office!"), daemon=True).start()
+
+    # ==========================================================================
+    # CHỨC NĂNG CỨU HỘ KHẨN CẤP (TRỊ BỆNH ZOMBIE MẤT REGISTRY)
+    # ==========================================================================
+    def hanh_dong_cuu_ho_zombie(self):
+        if messagebox.askyesno("Cảnh báo Cứu Hộ", "Tính năng này sẽ xóa cướng bức dịch vụ ClickToRunSvc và toàn bộ lõi thư mục.\n\nSử dụng để trị lỗi 'mất Registry không thể gỡ/cài lại'. Tiếp tục?"):
+            threading.Thread(target=self.luong_xu_ly_cuu_ho, daemon=True).start()
+
+    def luong_xu_ly_cuu_ho(self):
+        self.after(0, lambda: self.thanh_tien_do.config(mode='indeterminate', value=0))
+        self.after(0, lambda: self.thanh_tien_do.start(15))
+        try:
+            self.cap_nhat_trang_thai("⏳ Đang tiêu diệt tiến trình C2R ngầm...")
+            os.system('taskkill /F /IM ClickToRunSvc.exe >nul 2>&1')
+            os.system('taskkill /F /IM OfficeClickToRun.exe >nul 2>&1')
+            os.system('taskkill /F /IM setup.exe >nul 2>&1')
+            
+            self.cap_nhat_trang_thai("⏳ Đang nhổ rễ dịch vụ hệ thống ClickToRunSvc...")
+            os.system('sc delete ClickToRunSvc >nul 2>&1')
+            os.system('schtasks /Delete /TN "Microsoft\\Office" /F >nul 2>&1')
+            
+            self.cap_nhat_trang_thai("⏳ Đang xóa cưỡng bức thư mục gốc...")
+            danh_sach_thu_muc_rac = [
+                os.path.join(os.environ.get('ProgramFiles', 'C:\\Program Files'), "Microsoft Office"),
+                os.path.join(os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)'), "Microsoft Office"),
+                os.path.join(os.environ.get('ProgramFiles', 'C:\\Program Files'), "Common Files\\Microsoft Shared\\ClickToRun"),
+                os.path.join(os.environ.get('ProgramData', 'C:\\ProgramData'), "Microsoft\\Office")
+            ]
+            for thu_muc in danh_sach_thu_muc_rac:
+                if os.path.exists(thu_muc):
+                    try: shutil.rmtree(thu_muc, ignore_errors=True)
+                    except: pass
+                    
+            self.cap_nhat_trang_thai("✅ Cứu hộ thành công! Hệ thống đã sẵn sàng cài mới.")
+            messagebox.showinfo("Hoàn Tất Xóa Ép Buộc", "Đã diệt gọn tàn dư lõi C2R.\nBây giờ bác có thể quay lại tab 'Triển Khai & Kích Hoạt' để cài mới bình thường!")
+        finally:
+            self.after(0, lambda: self.thanh_tien_do.stop())
 
 if __name__ == "__main__":
     phan_mem_viettoolbox = TrienKhaiOffice()
