@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import urllib.request
 import threading
@@ -45,8 +46,8 @@ def tao_nut_bam_mau(khung_chua, chu_hien_thi, mau_nen, mau_chu="white", hanh_don
 class UngDungCaiDatOffice:
     def __init__(self, cua_so_chinh):
         self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - Trực tiếp từ Server CDN (V5.2)")
-        self.cua_so.geometry("640x660") # Tăng chiều cao thêm 1 chút cho thanh Progress Bar
+        self.cua_so.title("Cài đặt Microsoft Office - Trực tiếp từ Server CDN (V5.3)")
+        self.cua_so.geometry("640x660")
         self.cua_so.resizable(False, False)
 
         self.phong_chu_thuong = ("Segoe UI", 9)
@@ -83,7 +84,7 @@ class UngDungCaiDatOffice:
         self.nhan_trang_thai = tk.Label(khung_trang_thai, text="✅ Sẵn sàng kết nối tới hệ thống...", font=self.phong_chu_dam, fg="#2E7D32", bg="#E0F7FA")
         self.nhan_trang_thai.pack(anchor="w", padx=10, pady=(10, 5))
         
-        # --- THANH TIẾN TRÌNH VÔ TẬN (PROGRESS BAR) ---
+        # --- THANH TIẾN TRÌNH (PROGRESS BAR) ---
         self.thanh_tien_do = ttk.Progressbar(khung_trang_thai, mode='indeterminate')
         self.thanh_tien_do.pack(fill="x", padx=12, pady=(0, 10))
 
@@ -196,60 +197,54 @@ class UngDungCaiDatOffice:
             self.hop_chon_ban_con['values'] = ["ProPlus", "Standard", "Home & Business", "Home & Student"]
         self.hop_chon_ban_con.current(0)
 
-   def chuan_bi_cong_cu_odt(self):
+    def chuan_bi_cong_cu_odt(self):
         duong_dan_file_setup = os.path.join(os.getcwd(), "setup.exe")
         
-        # Đỡ mất công tải nếu máy đã có sẵn tool
+        # Nếu đã tải tool về máy rồi thì bỏ qua không tải lại nữa
         if os.path.exists(duong_dan_file_setup):
             return duong_dan_file_setup
 
         self.cap_nhat_trang_thai("⏳ Đang tải công cụ Office Deployment Tool từ Microsoft...")
         link_tai_odt = ""
         
-        # 1. ĐÓNG GIẢ LÀM TRÌNH DUYỆT CHROME ĐỂ VƯỢT TƯỜNG LỬA MICROSOFT
+        # Đeo mặt nạ trình duyệt để không bị Microsoft chặn
         tieu_de_gia_mao = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
 
         try:
-            # Quét link tự động
             yeu_cau_quet = urllib.request.Request("https://www.microsoft.com/en-us/download/confirmation.aspx?id=49117", headers=tieu_de_gia_mao)
             trang_tai_ve = urllib.request.urlopen(yeu_cau_quet, timeout=10).read().decode('utf-8')
-
-            import re
+            
+            # Quét tìm đường link file .exe mới nhất
             mau_tim = re.search(r'(https://download\.microsoft\.com/download/[^\s"\'<>]+officedeploymenttool_[^\s"\'<>]+\.exe)', trang_tai_ve, re.IGNORECASE)
             if mau_tim:
                 link_tai_odt = mau_tim.group(1)
         except:
             pass
 
-        # 2. PHƯƠNG ÁN DỰ PHÒNG VĨNH VIỄN
+        # Phương án dự phòng (Fallback) nếu trang Microsoft lỗi
         if not link_tai_odt:
-            # Mình đã trỏ link dự phòng về kho GitHub của bạn.
-            # Lưu ý: Lúc rảnh, bạn hãy lên trang chủ Microsoft tải file ODT, giải nén ra lấy file "setup.exe" rồi up lên GitHub của bạn nhé!
             link_tai_odt = "https://raw.githubusercontent.com/tuantran19912512/pythonoffice/main/setup.exe"
 
         file_tam_thoi = os.path.join(os.getcwd(), "cong_cu_tam.exe")
         try:
-            # 3. TIẾN HÀNH TẢI FILE XUỐNG (VẪN PHẢI ĐEO MẶT NẠ TRÌNH DUYỆT)
+            # Tải file về máy
             yeu_cau_tai = urllib.request.Request(link_tai_odt, headers=tieu_de_gia_mao)
             with urllib.request.urlopen(yeu_cau_tai, timeout=30) as phan_hoi, open(file_tam_thoi, 'wb') as file_luu:
                 file_luu.write(phan_hoi.read())
 
             self.cap_nhat_trang_thai("⏳ Đang giải nén công cụ...")
             
-            # 4. XỬ LÝ FILE TẢI VỀ
+            # Xử lý: Giải nén nếu là file gốc của Microsoft, đổi tên nếu là file từ GitHub
             if "officedeploymenttool" in link_tai_odt.lower():
-                # Nếu tải cục .exe gốc của MS thì gọi lệnh giải nén
                 subprocess.run([file_tam_thoi, "/extract:" + os.getcwd(), "/quiet"], creationflags=subprocess.CREATE_NO_WINDOW)
                 os.remove(file_tam_thoi)
             else:
-                # Nếu tải trực tiếp setup.exe từ GitHub thì chỉ việc đổi tên
                 os.rename(file_tam_thoi, duong_dan_file_setup)
 
         except Exception as loi_mang:
             messagebox.showerror("Lỗi mạng", f"Không thể lấy công cụ từ Microsoft.\n\nChi tiết: {loi_mang}")
             return None
 
-        # Trả về đường dẫn nếu file setup.exe đã xuất hiện an toàn
         return duong_dan_file_setup if os.path.exists(duong_dan_file_setup) else None
 
     def tao_loi_tat_desktop(self):
@@ -308,7 +303,7 @@ class UngDungCaiDatOffice:
             if duong_dan_setup and os.path.exists(duong_dan_setup):
                 self.cap_nhat_trang_thai("🚀 Đang chạy trình cài đặt. Vui lòng đợi đến khi bảng màu cam tắt hẳn...")
                 tien_trinh_cai_dat = subprocess.Popen([duong_dan_setup, "/configure", duong_dan_xml])
-                tien_trinh_cai_dat.wait() # Đợi Microsoft cài đặt xong
+                tien_trinh_cai_dat.wait()
                 
                 if self.bien_tao_shortcut.get():
                     self.tao_loi_tat_desktop()
@@ -371,7 +366,6 @@ class UngDungCaiDatOffice:
 
     # ---------- LOGIC XỬ LÝ OHOOK (GIST) ----------
     def tien_trinh_gist_ngam(self, tham_so):
-        # Đây là hàm chạy ngầm thực tế (không có popup cho việc cài đặt tự động)
         url_gist = f"https://gist.githubusercontent.com/tuantran19912512/81329d670436ea8492b73bd5889ad444/raw/Ohook.cmd?t={time.time()}"
         file_tam = os.path.join(os.environ['TEMP'], "Ohook_Script.cmd")
         try:
