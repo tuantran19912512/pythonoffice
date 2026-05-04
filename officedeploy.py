@@ -200,7 +200,22 @@ class UngDungCaiDatOffice:
         duong_dan_file_setup = os.path.join(os.getcwd(), "setup.exe")
         if not os.path.exists(duong_dan_file_setup):
             self.cap_nhat_trang_thai("⏳ Đang tải công cụ Office Deployment Tool từ Microsoft...")
-            link_tai_odt = "https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A5D4A7E/officedeploymenttool_18230-20045.exe"
+            
+            import re
+            link_tai_odt = ""
+            try:
+                # Tự động quét trang chủ Microsoft để bắt link file .exe bản mới nhất
+                trang_tai_ve = urllib.request.urlopen("https://www.microsoft.com/en-us/download/confirmation.aspx?id=49117", timeout=10).read().decode('utf-8')
+                link_moi_nhat = re.search(r'(https://download\.microsoft\.com/download/[^\s"\'<>]+officedeploymenttool_[^\s"\'<>]+\.exe)', trang_tai_ve, re.IGNORECASE)
+                if link_moi_nhat:
+                    link_tai_odt = link_moi_nhat.group(1)
+            except:
+                pass
+                
+            # Nếu web Microsoft bảo trì, dùng link cứng của phiên bản mới nhất hiện tại làm phương án dự phòng
+            if not link_tai_odt:
+                link_tai_odt = "https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A5D4A7E/officedeploymenttool_19929-20062.exe"
+                
             file_tam_thoi = os.path.join(os.getcwd(), "cong_cu_tam.exe")
             try:
                 urllib.request.urlretrieve(link_tai_odt, file_tam_thoi)
