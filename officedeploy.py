@@ -464,7 +464,7 @@ def nap_danh_sach():
     if not os.path.exists(thu_muc_mac_dinh): os.makedirs(thu_muc_mac_dinh)
     
     try:
-        # LƯU Ý: Nếu file CSV của bạn đã chuyển sang repo mới (pythonoffice), hãy sửa lại link ở dòng dưới cho đúng nhé!
+        # Đường dẫn tới file CSV (Nhớ sửa lại link nếu bạn đã chuyển repo)
         url_csv = f"https://raw.githubusercontent.com/tuantran19912512/Windows-tool-box/refs/heads/main/DanhSachOffice.csv?t={time.time()}"
         
         yeu_cau = urllib.request.urlopen(url_csv, timeout=10)
@@ -473,25 +473,33 @@ def nap_danh_sach():
         
         import re
         for dong in trinh_doc:
-            # Lấy dữ liệu an toàn, phòng trường hợp file CSV bị lỗi khoảng trắng
-            id_goc = dong.get('ID', '').strip()
+            chuoi_goc = dong.get('ID', '').strip()
             ten_goc = dong.get('Name', '').strip()
             
-            if id_goc and ten_goc:
-                # Nếu chuỗi là link đầy đủ thì mới dùng Regex bóc tách ID
-                if "http" in id_goc or "drive" in id_goc or "docs" in id_goc:
-                    mau = re.search(r'id=([^&]+)|/d/([^/]+)', id_goc)
-                    if mau:
-                        id_goc = mau.group(1) if mau.group(1) else mau.group(2)
+            if chuoi_goc and ten_goc:
+                id_chuan = ""
                 
-                # Nạp dữ liệu vào danh sách (áp dụng cho cả ID bóc tách được và ID thuần)
-                du_lieu_office.append({"Ten": ten_goc, "ID": id_goc})
-                danh_sach.insert("", "end", values=(ten_goc, "Sẵn sàng", "", "", ""))
+                # PHÂN LOẠI 1: Nếu chứa liên kết HTTP
+                if "http" in chuoi_goc.lower():
+                    # Chỉ lấy liên kết của Google Drive hoặc Google Docs
+                    if "drive.google" in chuoi_goc.lower() or "docs.google" in chuoi_goc.lower():
+                        mau_tim_kiem = re.search(r'id=([^&]+)|/d/([^/]+)', chuoi_goc)
+                        if mau_tim_kiem:
+                            id_chuan = mau_tim_kiem.group(1) if mau_tim_kiem.group(1) else mau_tim_kiem.group(2)
+                
+                # PHÂN LOẠI 2: Nếu không có http, mặc định đó là chuỗi ID nguyên bản
+                else:
+                    id_chuan = chuoi_goc
+                    
+                # CHỈ CẬP NHẬT VÀO GIAO DIỆN NẾU ID HỢP LỆ ĐƯỢC TÌM THẤY
+                if id_chuan:
+                    du_lieu_office.append({"Ten": ten_goc, "ID": id_chuan})
+                    danh_sach.insert("", "end", values=(ten_goc, "Sẵn sàng", "", "", ""))
                     
         bien_trang_thai = "Sẵn sàng"
-    except Exception as e:
+    except Exception as loi_he_thong:
         bien_trang_thai = "❌ Lỗi mạng"
-        them_nhat_ky(f"❌ Lỗi nạp danh sách: {e}")
+        them_nhat_ky(f"❌ Lỗi nạp danh sách: {loi_he_thong}")
 
 cua_so.after(100, nap_danh_sach)
 cua_so.after(300, cap_nhat_giao_dien)
