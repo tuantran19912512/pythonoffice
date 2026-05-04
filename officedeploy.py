@@ -198,34 +198,59 @@ class UngDungCaiDatOffice:
 
    def chuan_bi_cong_cu_odt(self):
         duong_dan_file_setup = os.path.join(os.getcwd(), "setup.exe")
-        if not os.path.exists(duong_dan_file_setup):
-            self.cap_nhat_trang_thai("⏳ Đang tải công cụ Office Deployment Tool từ Microsoft...")
-            
+        
+        # Đỡ mất công tải nếu máy đã có sẵn tool
+        if os.path.exists(duong_dan_file_setup):
+            return duong_dan_file_setup
+
+        self.cap_nhat_trang_thai("⏳ Đang tải công cụ Office Deployment Tool từ Microsoft...")
+        link_tai_odt = ""
+        
+        # 1. ĐÓNG GIẢ LÀM TRÌNH DUYỆT CHROME ĐỂ VƯỢT TƯỜNG LỬA MICROSOFT
+        tieu_de_gia_mao = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+
+        try:
+            # Quét link tự động
+            yeu_cau_quet = urllib.request.Request("https://www.microsoft.com/en-us/download/confirmation.aspx?id=49117", headers=tieu_de_gia_mao)
+            trang_tai_ve = urllib.request.urlopen(yeu_cau_quet, timeout=10).read().decode('utf-8')
+
             import re
-            link_tai_odt = ""
-            try:
-                # Tự động quét trang chủ Microsoft để bắt link file .exe bản mới nhất
-                trang_tai_ve = urllib.request.urlopen("https://www.microsoft.com/en-us/download/confirmation.aspx?id=49117", timeout=10).read().decode('utf-8')
-                link_moi_nhat = re.search(r'(https://download\.microsoft\.com/download/[^\s"\'<>]+officedeploymenttool_[^\s"\'<>]+\.exe)', trang_tai_ve, re.IGNORECASE)
-                if link_moi_nhat:
-                    link_tai_odt = link_moi_nhat.group(1)
-            except:
-                pass
-                
-            # Nếu web Microsoft bảo trì, dùng link cứng của phiên bản mới nhất hiện tại làm phương án dự phòng
-            if not link_tai_odt:
-                link_tai_odt = "https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A5D4A7E/officedeploymenttool_19929-20062.exe"
-                
-            file_tam_thoi = os.path.join(os.getcwd(), "cong_cu_tam.exe")
-            try:
-                urllib.request.urlretrieve(link_tai_odt, file_tam_thoi)
-                self.cap_nhat_trang_thai("⏳ Đang giải nén công cụ...")
+            mau_tim = re.search(r'(https://download\.microsoft\.com/download/[^\s"\'<>]+officedeploymenttool_[^\s"\'<>]+\.exe)', trang_tai_ve, re.IGNORECASE)
+            if mau_tim:
+                link_tai_odt = mau_tim.group(1)
+        except:
+            pass
+
+        # 2. PHƯƠNG ÁN DỰ PHÒNG VĨNH VIỄN
+        if not link_tai_odt:
+            # Mình đã trỏ link dự phòng về kho GitHub của bạn.
+            # Lưu ý: Lúc rảnh, bạn hãy lên trang chủ Microsoft tải file ODT, giải nén ra lấy file "setup.exe" rồi up lên GitHub của bạn nhé!
+            link_tai_odt = "https://raw.githubusercontent.com/tuantran19912512/pythonoffice/main/setup.exe"
+
+        file_tam_thoi = os.path.join(os.getcwd(), "cong_cu_tam.exe")
+        try:
+            # 3. TIẾN HÀNH TẢI FILE XUỐNG (VẪN PHẢI ĐEO MẶT NẠ TRÌNH DUYỆT)
+            yeu_cau_tai = urllib.request.Request(link_tai_odt, headers=tieu_de_gia_mao)
+            with urllib.request.urlopen(yeu_cau_tai, timeout=30) as phan_hoi, open(file_tam_thoi, 'wb') as file_luu:
+                file_luu.write(phan_hoi.read())
+
+            self.cap_nhat_trang_thai("⏳ Đang giải nén công cụ...")
+            
+            # 4. XỬ LÝ FILE TẢI VỀ
+            if "officedeploymenttool" in link_tai_odt.lower():
+                # Nếu tải cục .exe gốc của MS thì gọi lệnh giải nén
                 subprocess.run([file_tam_thoi, "/extract:" + os.getcwd(), "/quiet"], creationflags=subprocess.CREATE_NO_WINDOW)
                 os.remove(file_tam_thoi)
-            except Exception as loi_mang:
-                messagebox.showerror("Lỗi mạng", f"Không thể lấy công cụ từ Microsoft: {loi_mang}")
-                return None
-        return duong_dan_file_setup
+            else:
+                # Nếu tải trực tiếp setup.exe từ GitHub thì chỉ việc đổi tên
+                os.rename(file_tam_thoi, duong_dan_file_setup)
+
+        except Exception as loi_mang:
+            messagebox.showerror("Lỗi mạng", f"Không thể lấy công cụ từ Microsoft.\n\nChi tiết: {loi_mang}")
+            return None
+
+        # Trả về đường dẫn nếu file setup.exe đã xuất hiện an toàn
+        return duong_dan_file_setup if os.path.exists(duong_dan_file_setup) else None
 
     def tao_loi_tat_desktop(self):
         self.cap_nhat_trang_thai("⏳ Đang tìm và đưa Shortcut ra màn hình Desktop...")
