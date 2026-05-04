@@ -196,7 +196,7 @@ class UngDungCaiDatOffice:
             self.hop_chon_ban_con['values'] = ["ProPlus", "Standard", "Home & Business", "Home & Student"]
         self.hop_chon_ban_con.current(0)
 
-    def chuan_bi_cong_cu_odt(self):
+   def chuan_bi_cong_cu_odt(self):
         duong_dan_file_setup = os.path.join(os.getcwd(), "setup.exe")
         if not os.path.exists(duong_dan_file_setup):
             self.cap_nhat_trang_thai("⏳ Đang tải công cụ Office Deployment Tool từ Microsoft...")
