@@ -143,7 +143,7 @@ class DongCoTaiDaLuong:
 class UngDungCaiDatOffice:
     def __init__(self, cua_so_chinh):
         self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - Max Speed (V7.2 Perfect C2R)")
+        self.cua_so.title("Cài đặt Microsoft Office - Max Speed (V8 Ultimate C2R)")
         self.cua_so.geometry("640x720")
         self.cua_so.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
@@ -206,7 +206,7 @@ class UngDungCaiDatOffice:
 
         khung_nn = ttk.LabelFrame(khung_ngang, text=" 🌐 Ngôn ngữ ")
         khung_nn.pack(side="right", fill="both", expand=True, padx=(5, 0))
-        self.hop_chon_ngon_ngu = ttk.Combobox(khung_nn, values=["English (US) - en-us", "Vietnamese - vi-vn"], state="readonly")
+        self.hop_chon_ngon_ngu = ttk.Combobox(khung_nn, values=["English (US) - en-US", "Vietnamese - vi-VN"], state="readonly")
         self.hop_chon_ngon_ngu.current(0)
         self.hop_chon_ngon_ngu.pack(fill="x", padx=10, pady=6)
 
@@ -316,11 +316,9 @@ class UngDungCaiDatOffice:
         
         kien_truc_so = "64" if self.bien_kien_truc.get() == "64" else "32"
         kien_truc_chu = "x64" if kien_truc_so == "64" else "x86"
-        ngon_ngu = "vi-vn" if "Vietnamese" in self.hop_chon_ngon_ngu.get() else "en-us"
+        ngon_ngu = "vi-VN" if "Vietnamese" in self.hop_chon_ngon_ngu.get() else "en-US"
         
-        # MÃ LCID BẮT BUỘC ĐỂ TẢI CAB NGÔN NGỮ
-        ma_lcid = "1066" if ngon_ngu == "vi-vn" else "1033"
-        
+        ma_lcid = "1066" if ngon_ngu == "vi-VN" else "1033"
         thu_muc_goc = self.thu_muc_luu_file.get()
         
         self.cap_nhat_trang_thai("🔍 Đang bung tệp Danh mục (.cab) để dò mã Phiên bản...")
@@ -355,7 +353,6 @@ class UngDungCaiDatOffice:
         tm_version = os.path.join(tm_data, version_hien_tai)
         os.makedirs(tm_version, exist_ok=True)
 
-        # ĐÃ BỔ SUNG ĐỦ BỘ 8 FILE CHUẨN CỦA OFFICE TOOL PLUS
         danh_sach_tai = [
             (f"{base_url}/Office/Data/v{kien_truc_so}.cab", os.path.join(tm_data, f"v{kien_truc_so}.cab"), "Danh mục gốc"),
             (f"{base_url}/Office/Data/v{kien_truc_so}_{version_hien_tai}.cab", os.path.join(tm_data, f"v{kien_truc_so}_{version_hien_tai}.cab"), "Danh mục phiên bản"),
@@ -411,13 +408,12 @@ class UngDungCaiDatOffice:
         
         duong_dan_setup = self.chuan_bi_cong_cu_odt_cho_go()
         if not duong_dan_setup:
-            self.cap_nhat_trang_thai("❌ Thiếu công cụ setup.exe!")
+            self.cap_nhat_trang_thai("❌ Lỗi: Không thể lấy bộ cài ODT mới nhất từ Microsoft!")
             self.phuc_hoi_nut_cai_dat()
             return
 
         app_chon = [t for t, v in self.cac_bien_ung_dung.items() if v.get()]
         
-        # BỔ SUNG AllowCdnFallback="True" LÀM KIM BÀI MIỄN TỬ
         xml_code = f"""<Configuration>\n  <Add SourcePath="{thu_muc_goc}" OfficeClientEdition="{kien_truc_so}" Channel="Current" Version="{version_hien_tai}" AllowCdnFallback="True">\n    <Product ID="{ma_san_pham}">\n      <Language ID="{ngon_ngu}" />\n"""
         for t, m in tu_dien_ung_dung.items():
             if t not in app_chon: xml_code += f'      <ExcludeApp ID="{m}" />\n'
@@ -441,19 +437,36 @@ class UngDungCaiDatOffice:
         self.cua_so.after(0, lambda: self.thanh_tien_do.stop())
         self.cap_nhat_trang_thai("✅ HOÀN TẤT: Đã cài đặt C2R siêu tốc độ thành công!")
         self.phuc_hoi_nut_cai_dat()
-        messagebox.showinfo("Thành công", "Phiên bản Office Tool Plus thu nhỏ đã hoàn thành xuất sắc nhiệm vụ!")
+        messagebox.showinfo("Thành công", "Lỗi 30029-2016 đã bị triệt tiêu hoàn toàn!")
 
+    # BẢN VÁ LỖI CỰC MẠNH: TẢI TRỰC TIẾP ODT TỪ MÁY CHỦ MICROSOFT THAY VÌ GITHUB
     def chuan_bi_cong_cu_odt_cho_go(self):
-        duong_dan_file_setup = os.path.join(os.getcwd(), "setup.exe")
-        if os.path.exists(duong_dan_file_setup): return duong_dan_file_setup
-        tieu_de_gia_mao = {'User-Agent': 'Mozilla/5.0'}
-        link_tai_odt = "https://raw.githubusercontent.com/tuantran19912512/pythonoffice/main/setup.exe"
-        file_tam = os.path.join(os.getcwd(), "cong_cu_tam.exe")
+        duong_dan_file_setup = os.path.join(os.environ['TEMP'], "setup.exe")
+        
+        # Luôn ưu tiên dùng file mới nhất trong Temp nếu có
+        if os.path.exists(duong_dan_file_setup): 
+            try: os.remove(duong_dan_file_setup) # Xóa file cũ đi để kéo bản mới nhất cho chắc
+            except: pass
+
+        self.cap_nhat_trang_thai("⏳ Đang tải công cụ Setup chuẩn 2024 từ Server Microsoft...")
+        # Link tải file cài đặt ODT (Office Deployment Tool) bản quyền mới nhất
+        link_odt = "https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A8D4A7E/officedeploymenttool_39329-33611.exe"
+        file_odt = os.path.join(os.environ['TEMP'], "odt_installer.exe")
         try:
-            with urllib.request.urlopen(urllib.request.Request(link_tai_odt, headers=tieu_de_gia_mao), timeout=30) as phan_hoi, open(file_tam, 'wb') as f: f.write(phan_hoi.read())
-            os.rename(file_tam, duong_dan_file_setup)
-            return duong_dan_file_setup
-        except: return None
+            req = urllib.request.Request(link_odt, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=30) as phan_hoi, open(file_odt, 'wb') as f: 
+                f.write(phan_hoi.read())
+            
+            self.cap_nhat_trang_thai("⏳ Đang trích xuất lõi cài đặt Setup.exe...")
+            # Gọi lệnh giải nén ngầm (không hiện cửa sổ) để móc thằng setup.exe ra
+            thu_muc_temp = os.environ['TEMP']
+            subprocess.run([file_odt, f"/extract:{thu_muc_temp}", "/quiet"], creationflags=subprocess.CREATE_NO_WINDOW)
+            
+            if os.path.exists(duong_dan_file_setup):
+                return duong_dan_file_setup
+            return None
+        except Exception as e: 
+            return None
 
     def khoi_dong_go_office(self):
         if messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn gỡ toàn bộ Office khỏi máy tính không?"): threading.Thread(target=self.tien_trinh_go_office, daemon=True).start()
