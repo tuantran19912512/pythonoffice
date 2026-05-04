@@ -464,24 +464,34 @@ def nap_danh_sach():
     if not os.path.exists(thu_muc_mac_dinh): os.makedirs(thu_muc_mac_dinh)
     
     try:
+        # LƯU Ý: Nếu file CSV của bạn đã chuyển sang repo mới (pythonoffice), hãy sửa lại link ở dòng dưới cho đúng nhé!
         url_csv = f"https://raw.githubusercontent.com/tuantran19912512/Windows-tool-box/refs/heads/main/DanhSachOffice.csv?t={time.time()}"
+        
         yeu_cau = urllib.request.urlopen(url_csv, timeout=10)
         noi_dung = yeu_cau.read().decode('utf-8').splitlines()
         trinh_doc = csv.DictReader(noi_dung)
         
+        import re
         for dong in trinh_doc:
-            if "drive" in dong['ID'] or "docs" in dong['ID'] or "http" not in dong['ID']:
-                import re
-                mau = re.search(r'id=([^&]+)|/d/([^/]+)', dong['ID'])
-                if mau:
-                    id_goc = mau.group(1) if mau.group(1) else mau.group(2)
-                    du_lieu_office.append({"Ten": dong['Name'], "ID": id_goc})
-                    danh_sach.insert("", "end", values=(dong['Name'], "Sẵn sàng", "", "", ""))
+            # Lấy dữ liệu an toàn, phòng trường hợp file CSV bị lỗi khoảng trắng
+            id_goc = dong.get('ID', '').strip()
+            ten_goc = dong.get('Name', '').strip()
+            
+            if id_goc and ten_goc:
+                # Nếu chuỗi là link đầy đủ thì mới dùng Regex bóc tách ID
+                if "http" in id_goc or "drive" in id_goc or "docs" in id_goc:
+                    mau = re.search(r'id=([^&]+)|/d/([^/]+)', id_goc)
+                    if mau:
+                        id_goc = mau.group(1) if mau.group(1) else mau.group(2)
+                
+                # Nạp dữ liệu vào danh sách (áp dụng cho cả ID bóc tách được và ID thuần)
+                du_lieu_office.append({"Ten": ten_goc, "ID": id_goc})
+                danh_sach.insert("", "end", values=(ten_goc, "Sẵn sàng", "", "", ""))
                     
         bien_trang_thai = "Sẵn sàng"
     except Exception as e:
         bien_trang_thai = "❌ Lỗi mạng"
-        them_nhat_ky(f"❌ Lỗi nạp danh sách Google Drive: {e}")
+        them_nhat_ky(f"❌ Lỗi nạp danh sách: {e}")
 
 cua_so.after(100, nap_danh_sach)
 cua_so.after(300, cap_nhat_giao_dien)
