@@ -143,7 +143,7 @@ class DongCoTaiDaLuong:
 class UngDungCaiDatOffice:
     def __init__(self, cua_so_chinh):
         self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - Max Speed (V8 Ultimate C2R)")
+        self.cua_so.title("Cài đặt Microsoft Office - Max Speed (V8.1 Auto-Scraper C2R)")
         self.cua_so.geometry("640x720")
         self.cua_so.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
@@ -437,28 +437,42 @@ class UngDungCaiDatOffice:
         self.cua_so.after(0, lambda: self.thanh_tien_do.stop())
         self.cap_nhat_trang_thai("✅ HOÀN TẤT: Đã cài đặt C2R siêu tốc độ thành công!")
         self.phuc_hoi_nut_cai_dat()
-        messagebox.showinfo("Thành công", "Lỗi 30029-2016 đã bị triệt tiêu hoàn toàn!")
+        messagebox.showinfo("Thành công", "Cài đặt mượt mà, lỗi ODT cũ đã bị triệt tiêu hoàn toàn!")
 
-    # BẢN VÁ LỖI CỰC MẠNH: TẢI TRỰC TIẾP ODT TỪ MÁY CHỦ MICROSOFT THAY VÌ GITHUB
+    # ==========================================================================
+    # BẢN VÁ LỖI V8.1: AI AUTO-SCRAPER (CÀO LINK ODT TRỰC TIẾP TỪ MICROSOFT)
+    # ==========================================================================
     def chuan_bi_cong_cu_odt_cho_go(self):
         duong_dan_file_setup = os.path.join(os.environ['TEMP'], "setup.exe")
         
-        # Luôn ưu tiên dùng file mới nhất trong Temp nếu có
         if os.path.exists(duong_dan_file_setup): 
-            try: os.remove(duong_dan_file_setup) # Xóa file cũ đi để kéo bản mới nhất cho chắc
+            try: os.remove(duong_dan_file_setup) 
             except: pass
 
-        self.cap_nhat_trang_thai("⏳ Đang tải công cụ Setup chuẩn 2024 từ Server Microsoft...")
-        # Link tải file cài đặt ODT (Office Deployment Tool) bản quyền mới nhất
-        link_odt = "https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A8D4A7E/officedeploymenttool_39329-33611.exe"
+        self.cap_nhat_trang_thai("⏳ Đang đóng giả trình duyệt, cào link ODT từ Microsoft...")
         file_odt = os.path.join(os.environ['TEMP'], "odt_installer.exe")
+        
         try:
-            req = urllib.request.Request(link_odt, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=30) as phan_hoi, open(file_odt, 'wb') as f: 
+            # 1. Truy cập trang xác nhận tải xuống của Microsoft
+            page_url = "https://www.microsoft.com/en-us/download/confirmation.aspx?id=49117"
+            req = urllib.request.Request(page_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36'})
+            html = urllib.request.urlopen(req, timeout=15).read().decode('utf-8')
+            
+            # 2. Dùng Regex để móc lấy chính xác link file .exe mới nhất
+            match = re.search(r'href="(https://download\.microsoft\.com/[^"]+officedeploymenttool[^"]+\.exe)"', html, re.IGNORECASE)
+            
+            if match:
+                link_odt = match.group(1) # Bắt thành công link mới nhất!
+            else:
+                # 3. Fallback: Nếu web đổi giao diện, dùng link tĩnh dự phòng (Bản cập nhật gần đây)
+                link_odt = "https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A8D4A7E/officedeploymenttool_19929-20062.exe"
+
+            self.cap_nhat_trang_thai("⏳ Đang kéo file Setup.exe chuẩn về máy...")
+            req_file = urllib.request.Request(link_odt, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req_file, timeout=30) as phan_hoi, open(file_odt, 'wb') as f: 
                 f.write(phan_hoi.read())
             
             self.cap_nhat_trang_thai("⏳ Đang trích xuất lõi cài đặt Setup.exe...")
-            # Gọi lệnh giải nén ngầm (không hiện cửa sổ) để móc thằng setup.exe ra
             thu_muc_temp = os.environ['TEMP']
             subprocess.run([file_odt, f"/extract:{thu_muc_temp}", "/quiet"], creationflags=subprocess.CREATE_NO_WINDOW)
             
