@@ -49,7 +49,8 @@ if ($pyCmd -and ($pyCmd.Source -notmatch "WindowsApps")) {
 if ($coPython) {
     Write-Host "Đang nạp Office Deploy từ GitHub..." -ForegroundColor Cyan
     
-    $linkScriptPy = "https://raw.githubusercontent.com/tuantran19912512/pythonoffice/refs/heads/main/officedeploy.py"
+    # Dùng bộ đếm Ticks của đồng hồ hệ thống để tạo ra một chuỗi số ngẫu nhiên không bao giờ trùng lặp
+	$linkScriptPy = "https://raw.githubusercontent.com/tuantran19912512/pythonoffice/refs/heads/main/officedeploy.py?t=$((Get-Date).Ticks)"
     $filePyLuu = Join-Path $env:TEMP "OfficeDeploy_Master.py"
 
     try {
