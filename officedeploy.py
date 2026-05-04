@@ -4,7 +4,6 @@ import subprocess
 import urllib.request
 import threading
 import time
-import queue
 import socket
 import glob
 import shutil
@@ -36,19 +35,17 @@ TUDIEN_UNGDUNG = {
 }
 
 # ==============================================================================
-# LÕI 1: ĐỘNG CƠ TẢI XUỐNG ĐA LUỒNG TỐI ƯU I/O
+# LÕI 1: ĐỘNG CƠ TẢI XUỐNG LUỒNG ĐƠN TỐI ƯU Ổ CỨNG (KHÔNG GỘP FILE)
 # ==============================================================================
 class DongCoTaiXuong:
-    def __init__(self, duong_dan_mang, duong_dan_luu, so_luong_luong=16):
+    def __init__(self, duong_dan_mang, duong_dan_luu):
         self.duong_dan_mang = duong_dan_mang
         self.duong_dan_luu = duong_dan_luu
-        self.so_luong_luong = so_luong_luong
         self.tong_dung_luong = 0
         self.dung_luong_da_tai = 0
         self.trang_thai_loi = False
         self.trang_thai_huy = False
         self.tieu_de_mang = {'User-Agent': 'Mozilla/5.0'}
-        self.khoa_luong = threading.Lock()
 
     def kiem_tra_dung_luong(self):
         try:
@@ -59,93 +56,45 @@ class DongCoTaiXuong:
         except Exception:
             return False
 
-    def luong_thuc_thi_tai(self, hang_doi_viec):
-        while not hang_doi_viec.empty() and not self.trang_thai_loi and not self.trang_thai_huy:
-            try:
-                diem_bat_dau, diem_ket_thuc, chi_so = hang_doi_viec.get_nowait()
-            except queue.Empty:
-                break
-                
-            ten_file_tam = f"{self.duong_dan_luu}.phan{chi_so}"
-            diem_hien_tai = diem_bat_dau
-            
-            if os.path.exists(ten_file_tam):
-                dung_luong_hien_co = os.path.getsize(ten_file_tam)
-                if dung_luong_hien_co == (diem_ket_thuc - diem_bat_dau + 1):
-                    with self.khoa_luong:
-                        self.dung_luong_da_tai += dung_luong_hien_co
-                    hang_doi_viec.task_done()
-                    continue
-                else:
-                    diem_hien_tai += dung_luong_hien_co
-                    with self.khoa_luong:
-                        self.dung_luong_da_tai += dung_luong_hien_co
-
-            so_lan_thu_lai = 0
-            thanh_cong = False
-            while so_lan_thu_lai < 10 and not thanh_cong and not self.trang_thai_loi and not self.trang_thai_huy:
-                try:
-                    yeu_cau = urllib.request.Request(self.duong_dan_mang, headers={'Range': f'bytes={diem_hien_tai}-{diem_ket_thuc}', **self.tieu_de_mang})
-                    with urllib.request.urlopen(yeu_cau, timeout=10) as phan_hoi, open(ten_file_tam, 'ab') as file_tam:
-                        while True:
-                            if self.trang_thai_huy:
-                                break
-                            khoi_du_lieu = phan_hoi.read(262144) 
-                            if not khoi_du_lieu:
-                                break
-                            file_tam.write(khoi_du_lieu)
-                            with self.khoa_luong:
-                                self.dung_luong_da_tai += len(khoi_du_lieu)
-                            diem_hien_tai += len(khoi_du_lieu)
-                    thanh_cong = True
-                except Exception:
-                    so_lan_thu_lai += 1
-                    time.sleep(1)
-                    
-            if not thanh_cong and not self.trang_thai_huy:
-                self.trang_thai_loi = True
-            hang_doi_viec.task_done()
-
     def khoi_chay_dong_co(self):
-        hang_doi_viec = queue.Queue()
-        kich_thuoc_cuc = 50 * 1024 * 1024
-        so_luong_cuc = self.tong_dung_luong // kich_thuoc_cuc
-        if self.tong_dung_luong % kich_thuoc_cuc != 0:
-            so_luong_cuc += 1
+        # Kiểm tra xem file đã tải dở trước đó chưa để tiếp tục (Resume)
+        if os.path.exists(self.duong_dan_luu):
+            self.dung_luong_da_tai = os.path.getsize(self.duong_dan_luu)
+        else:
+            self.dung_luong_da_tai = 0
 
-        for i in range(so_luong_cuc):
-            diem_bat_dau = i * kich_thuoc_cuc
-            diem_ket_thuc = min(diem_bat_dau + kich_thuoc_cuc - 1, self.tong_dung_luong - 1)
-            hang_doi_viec.put((diem_bat_dau, diem_ket_thuc, i))
+        # Nếu đã tải đủ thì không tải nữa
+        if self.dung_luong_da_tai >= self.tong_dung_luong and self.tong_dung_luong > 0:
+            return True
 
-        danh_sach_luong = []
-        for _ in range(self.so_luong_luong):
-            luong_moi = threading.Thread(target=self.luong_thuc_thi_tai, args=(hang_doi_viec,))
-            luong_moi.start()
-            danh_sach_luong.append(luong_moi)
-
-        for luong in danh_sach_luong:
-            luong.join()
-
-        if self.trang_thai_huy or self.trang_thai_loi:
-            self.don_dep_file_rac(so_luong_cuc)
-            return False
-
-        with open(self.duong_dan_luu, 'wb') as file_dich:
-            for i in range(so_luong_cuc):
-                ten_file_tam = f"{self.duong_dan_luu}.phan{i}"
-                if os.path.exists(ten_file_tam):
-                    with open(ten_file_tam, 'rb') as file_nguon:
-                        file_dich.write(file_nguon.read())
-                    os.remove(ten_file_tam)
-        return True
-
-    def don_dep_file_rac(self, so_luong_cuc):
-        for i in range(so_luong_cuc):
-            file_rac = f"{self.duong_dan_luu}.phan{i}"
-            if os.path.exists(file_rac):
-                try: os.remove(file_rac)
-                except: pass
+        so_lan_thu_lai = 0
+        while so_lan_thu_lai < 10 and not self.trang_thai_huy:
+            try:
+                tieu_de = self.tieu_de_mang.copy()
+                if self.dung_luong_da_tai > 0:
+                    tieu_de['Range'] = f'bytes={self.dung_luong_da_tai}-'
+                    
+                yeu_cau = urllib.request.Request(self.duong_dan_mang, headers=tieu_de)
+                # Ghi nối tiếp trực tiếp vào file cuối cùng (append mode 'ab')
+                with urllib.request.urlopen(yeu_cau, timeout=15) as phan_hoi, open(self.duong_dan_luu, 'ab') as file_luu:
+                    while not self.trang_thai_huy:
+                        khoi_du_lieu = phan_hoi.read(1048576) # Đọc cục lớn 1MB để tối ưu I/O ghi ổ cứng
+                        if not khoi_du_lieu:
+                            break
+                        file_luu.write(khoi_du_lieu)
+                        self.dung_luong_da_tai += len(khoi_du_lieu)
+                
+                # Nếu tải xong và đủ dung lượng
+                if self.dung_luong_da_tai >= self.tong_dung_luong:
+                    return True
+                    
+            except Exception:
+                so_lan_thu_lai += 1
+                time.sleep(2) # Chờ 2 giây mạng ổn định rồi thử lại nối tiếp
+        
+        if not self.trang_thai_huy:
+            self.trang_thai_loi = True
+        return False
 
 # ==============================================================================
 # LÕI 2: TIỆN ÍCH XỬ LÝ HỆ THỐNG VÀ REGISTRY (VIETTOOLBOX CORE)
@@ -232,8 +181,8 @@ class TienIchHeThong:
 class TrienKhaiOffice(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("VietToolbox - Triển khai Microsoft Office (V10.1 Rescue Edition)")
-        self.geometry("640x780") # Nới rộng khung dọc một chút để chứa nút Cứu Hộ
+        self.title("VietToolbox - Triển khai Microsoft Office (V10.2 Tải Luồng Đơn Tối Ưu I/O)")
+        self.geometry("640x780")
         self.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
         self.thu_muc_lam_viec = tk.StringVar(value=os.getcwd())
@@ -353,14 +302,12 @@ class TrienKhaiOffice(tk.Tk):
         khung_nut_ohook.pack(fill="x", padx=10, pady=5)
         self.tao_nut_bam(khung_nut_ohook, "🛡️ RÚT THUỐC OHOOK", "#7B1FA2", hanh_dong=self.hanh_dong_rut_thuoc_ohook).pack(side="right", padx=5, pady=2)
 
-        # TÍNH NĂNG MỚI V10.1: CỨU HỘ MÁY LỖI
         khung_cuu_ho = ttk.LabelFrame(tab, text=" 🆘 CỨU HỘ KHẨN CẤP: LỖI KẸT BỘ CÀI (ZOMBIE) ")
         khung_cuu_ho.pack(fill="x", padx=10, pady=7)
         ttk.Label(khung_cuu_ho, text="Chỉ dùng khi bị mất Registry không thể gỡ qua Control Panel, cài mới thì báo lỗi.\nTính năng này sẽ xóa ép buộc dịch vụ ClickToRunSvc lõi.", justify="left").pack(anchor="w", padx=15, pady=3)
         khung_nut_cuu_ho = ttk.Frame(khung_cuu_ho)
         khung_nut_cuu_ho.pack(fill="x", padx=10, pady=5)
         self.tao_nut_bam(khung_nut_cuu_ho, "🆘 XÓA ÉP BUỘC C2R", "#E65100", hanh_dong=self.hanh_dong_cuu_ho_zombie).pack(side="right", padx=5, pady=2)
-
 
     def cap_nhat_danh_sach_ban_con(self, *args):
         if self.bien_nam_phien_ban.get() == "365":
@@ -471,7 +418,8 @@ class TrienKhaiOffice(tk.Tk):
             if os.path.exists(duong_dan_luu) and os.path.getsize(duong_dan_luu) == dung_luong_thuc:
                 continue
 
-            self.tien_trinh_tai_mang = DongCoTaiXuong(link_mang, duong_dan_luu, 16)
+            # BẢN VÁ V10.2: KHỞI TẠO ĐỘNG CƠ TẢI LUỒNG ĐƠN GHI TRỰC TIẾP
+            self.tien_trinh_tai_mang = DongCoTaiXuong(link_mang, duong_dan_luu)
             if self.tien_trinh_tai_mang.kiem_tra_dung_luong():
                 luong_tai_chinh = threading.Thread(target=self.tien_trinh_tai_mang.khoi_chay_dong_co)
                 luong_tai_chinh.start()
