@@ -10,16 +10,26 @@ from tkinter import ttk, messagebox
 # TỪ ĐIỂN DỮ LIỆU CỦA MICROSOFT
 # ==============================================================================
 tu_dien_phien_ban = {
+    # Nhánh ProPlus
     "2016_ProPlus": "ProPlusRetail", "2019_ProPlus": "ProPlus2019Retail",
     "2021_ProPlus": "ProPlus2021Retail", "2024_ProPlus": "ProPlus2024Retail",
-    "365_ProPlus": "O365ProPlusRetail", "2016_Standard": "StandardRetail",
-    "2019_Standard": "Standard2019Retail", "2021_Standard": "Standard2021Retail",
-    "2024_Standard": "Standard2024Retail", "2016_HomeBusiness": "HomeBusinessRetail",
-    "2019_HomeBusiness": "HomeBusiness2019Retail", "2021_HomeBusiness": "HomeBusiness2021Retail",
-    "2024_HomeBusiness": "HomeBusiness2024Retail", "365_HomeBusiness": "O365BusinessRetail",
-    "2016_HomeStudent": "HomeStudentRetail", "2019_HomeStudent": "HomeStudent2019Retail",
-    "2021_HomeStudent": "HomeStudent2021Retail", "2024_HomeStudent": "Home2024Retail",
-    "365_HomeStudent": "O365HomePremRetail"
+    "365_ProPlus": "O365ProPlusRetail", 
+    
+    # Nhánh Standard
+    "2016_Standard": "StandardRetail", "2019_Standard": "Standard2019Retail", 
+    "2021_Standard": "Standard2021Retail", "2024_Standard": "Standard2024Retail", 
+    
+    # Nhánh Home & Business
+    "2016_HomeBusiness": "HomeBusinessRetail", "2019_HomeBusiness": "HomeBusiness2019Retail", 
+    "2021_HomeBusiness": "HomeBusiness2021Retail", "2024_HomeBusiness": "HomeBusiness2024Retail", 
+    
+    # Nhánh Home & Student
+    "2016_HomeStudent": "HomeStudentRetail", "2019_HomeStudent": "HomeStudent2019Retail", 
+    "2021_HomeStudent": "HomeStudent2021Retail", "2024_HomeStudent": "Home2024Retail", 
+    
+    # Nhánh riêng của Office 365
+    "365_Business": "O365BusinessRetail",
+    "365_HomePremium": "O365HomePremRetail"
 }
 
 tu_dien_ung_dung = {
@@ -45,7 +55,7 @@ def tao_nut_bam_mau(khung_chua, chu_hien_thi, mau_nen, mau_chu="white", hanh_don
 class UngDungCaiDatOffice:
     def __init__(self, cua_so_chinh):
         self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - Trực tiếp từ Server CDN (V3 Full)")
+        self.cua_so.title("Cài đặt Microsoft Office - Trực tiếp từ Server CDN (V4 Dynamic)")
         self.cua_so.geometry("630x750")
         self.cua_so.resizable(False, False)
 
@@ -96,14 +106,19 @@ class UngDungCaiDatOffice:
         
         khung_rb_phien_ban = ttk.Frame(khung_phien_ban)
         khung_rb_phien_ban.pack(fill="x", padx=10, pady=5)
+        
+        # Bắt sự kiện khi người dùng click đổi phiên bản (Radio button)
+        self.bien_phien_ban.trace_add("write", self.cap_nhat_hop_chon_ban_con)
+        
         for vi_tri, ten_ban in enumerate(danh_sach_ban):
             ttk.Radiobutton(khung_rb_phien_ban, text=ten_ban, variable=self.bien_phien_ban, value=ten_ban.split()[-1]).grid(row=0, column=vi_tri, padx=6)
             
         khung_cb_phien_ban = ttk.Frame(khung_phien_ban)
         khung_cb_phien_ban.pack(fill="x", padx=10, pady=5)
         ttk.Label(khung_cb_phien_ban, text="Phiên bản con:").pack(side="left", padx=(0, 10))
-        self.hop_chon_ban_con = ttk.Combobox(khung_cb_phien_ban, values=["ProPlus", "Standard", "Home & Business", "Home & Student"], state="readonly", width=35)
-        self.hop_chon_ban_con.current(0)
+        self.hop_chon_ban_con = ttk.Combobox(khung_cb_phien_ban, state="readonly", width=35)
+        # Nạp dữ liệu lần đầu
+        self.cap_nhat_hop_chon_ban_con()
         self.hop_chon_ban_con.pack(side="left")
 
         # 2. KHUNG KIẾN TRÚC & NGÔN NGỮ
@@ -149,7 +164,6 @@ class UngDungCaiDatOffice:
     # TAB 2: GỠ CÀI ĐẶT & DỌN DẸP
     # --------------------------------------------------------------------------
     def xay_dung_tab_go_cai_dat(self, tab):
-        # 1. KHUNG GỠ OFFICE
         khung_go_office = ttk.LabelFrame(tab, text=" 🗑️ Gỡ Cài Đặt Office Toàn Diện ")
         khung_go_office.pack(fill="x", padx=10, pady=10)
         ttk.Label(khung_go_office, text="Thao tác này sẽ gọi trình gỡ cài đặt gốc của Microsoft để xóa sạch\ntoàn bộ các phiên bản Office (Word, Excel...) đang có trên máy tính.", justify="left").pack(anchor="w", padx=15, pady=5)
@@ -157,7 +171,6 @@ class UngDungCaiDatOffice:
         khung_nut_go.pack(fill="x", padx=10, pady=5)
         tao_nut_bam_mau(khung_nut_go, "🗑 BẮT ĐẦU GỠ OFFICE", "#D32F2F", hanh_dong=self.khoi_dong_luong_go_office).pack(side="right", padx=5, pady=5)
 
-        # 2. KHUNG GỠ CRACK KMS
         khung_go_kms = ttk.LabelFrame(tab, text=" 🧹 Gỡ Crack KMS / Reset Bản Quyền ")
         khung_go_kms.pack(fill="x", padx=10, pady=10)
         ttk.Label(khung_go_kms, text="Dọn dẹp các máy chủ KMS ảo, làm sạch Registry kích hoạt lậu và\nđưa trạng thái bản quyền Office về như máy mới (Rearm).", justify="left").pack(anchor="w", padx=15, pady=5)
@@ -165,7 +178,6 @@ class UngDungCaiDatOffice:
         khung_nut_kms.pack(fill="x", padx=10, pady=5)
         tao_nut_bam_mau(khung_nut_kms, "🧹 DỌN DẸP KMS", "#1976D2", hanh_dong=self.tien_trinh_go_kms_ngam).pack(side="right", padx=5, pady=5)
 
-        # 3. KHUNG GỠ CRACK OHOOK
         khung_go_ohook = ttk.LabelFrame(tab, text=" 💊 Gỡ Crack Ohook ")
         khung_go_ohook.pack(fill="x", padx=10, pady=10)
         ttk.Label(khung_go_ohook, text="Gỡ bỏ hoàn toàn Hook kích hoạt bản quyền vĩnh viễn (Ohook)\nvà trả lại các file hệ thống nguyên bản cho ứng dụng Office.", justify="left").pack(anchor="w", padx=15, pady=5)
@@ -176,6 +188,16 @@ class UngDungCaiDatOffice:
     # ==========================================================================
     # CÁC HÀM XỬ LÝ LÕI BACKEND
     # ==========================================================================
+    
+    # Hàm thông minh: Tự thay đổi danh sách menu theo bản Office được chọn
+    def cap_nhat_hop_chon_ban_con(self, *args):
+        ban_dang_chon = self.bien_phien_ban.get()
+        if ban_dang_chon == "365":
+            self.hop_chon_ban_con['values'] = ["ProPlus", "Business", "Home Premium"]
+        else:
+            self.hop_chon_ban_con['values'] = ["ProPlus", "Standard", "Home & Business", "Home & Student"]
+        self.hop_chon_ban_con.current(0)
+
     def chuan_bi_cong_cu_odt(self):
         duong_dan_file_setup = os.path.join(os.getcwd(), "setup.exe")
         if not os.path.exists(duong_dan_file_setup):
@@ -212,8 +234,10 @@ class UngDungCaiDatOffice:
 
     def tien_trinh_cai_dat_ngam(self):
         nam_phien_ban = self.bien_phien_ban.get()
+        # Biến "Home & Business" thành "HomeBusiness", "Home Premium" thành "HomePremium" để khớp chuẩn từ điển
         ban_con_dinh_dang = self.hop_chon_ban_con.get().replace(" & ", "").replace(" ", "")
         phien_ban_tong_hop = f"{nam_phien_ban}_{ban_con_dinh_dang}"
+        
         kien_truc_chon = self.bien_kien_truc.get()
         ngon_ngu_chon = self.hop_chon_ngon_ngu.get()
 
