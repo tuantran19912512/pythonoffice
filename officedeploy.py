@@ -9,15 +9,14 @@ import socket
 import glob
 import shutil
 import tkinter as tk
-from tkinter import ttk, messagebox
-from tkinter import filedialog
+from tkinter import ttk, messagebox, filedialog
 
 socket.setdefaulttimeout(10)
 
 # ==============================================================================
-# TỪ ĐIỂN DỮ LIỆU CỦA MICROSOFT
+# CẤU HÌNH DỮ LIỆU MICROSOFT
 # ==============================================================================
-tu_dien_phien_ban = {
+TUDIEN_PHIENBAN = {
     "2016_ProPlus": "ProPlusRetail", "2019_ProPlus": "ProPlus2019Retail",
     "2021_ProPlus": "ProPlus2021Retail", "2024_ProPlus": "ProPlus2024Retail",
     "365_ProPlus": "O365ProPlusRetail", "2016_Standard": "StandardRetail",
@@ -30,591 +29,588 @@ tu_dien_phien_ban = {
     "365_HomePremium": "O365HomePremRetail"
 }
 
-tu_dien_ung_dung = {
+TUDIEN_UNGDUNG = {
     "Access": "Access", "Excel": "Excel", "Word": "Word",
     "PowerPoint": "PowerPoint", "Outlook": "Outlook", "Publisher": "Publisher",
     "OneNote": "OneNote", "Skype": "Lync", "Teams": "Teams"
 }
 
 # ==============================================================================
-# ĐỘNG CƠ TẢI MICRO-RESUMING
+# LÕI 1: ĐỘNG CƠ TẢI XUỐNG ĐA LUỒNG TỐI ƯU I/O
 # ==============================================================================
-class DongCoTaiDaLuong:
-    def __init__(self, url, file_luu, so_luong=16):
-        self.url = url
-        self.file_luu = file_luu
-        self.so_luong = so_luong
+class DongCoTaiXuong:
+    def __init__(self, duong_dan_mang, duong_dan_luu, so_luong_luong=16):
+        self.duong_dan_mang = duong_dan_mang
+        self.duong_dan_luu = duong_dan_luu
+        self.so_luong_luong = so_luong_luong
         self.tong_dung_luong = 0
-        self.da_tai = 0
-        self.loi = False
-        self.huy_tai = False
-        self.tieu_de = {'User-Agent': 'Mozilla/5.0'}
-        self.khoa = threading.Lock()
+        self.dung_luong_da_tai = 0
+        self.trang_thai_loi = False
+        self.trang_thai_huy = False
+        self.tieu_de_mang = {'User-Agent': 'Mozilla/5.0'}
+        self.khoa_luong = threading.Lock()
 
-    def lay_dung_luong(self):
+    def kiem_tra_dung_luong(self):
         try:
-            req = urllib.request.Request(self.url, method='HEAD', headers=self.tieu_de)
-            with urllib.request.urlopen(req, timeout=10) as res:
-                self.tong_dung_luong = int(res.headers.get('Content-Length', 0))
+            yeu_cau = urllib.request.Request(self.duong_dan_mang, method='HEAD', headers=self.tieu_de_mang)
+            with urllib.request.urlopen(yeu_cau, timeout=10) as phan_hoi:
+                self.tong_dung_luong = int(phan_hoi.headers.get('Content-Length', 0))
             return self.tong_dung_luong > 0
-        except:
+        except Exception:
             return False
 
-    def tho_tai(self, hang_doi):
-        while not hang_doi.empty() and not self.loi and not self.huy_tai:
+    def luong_thuc_thi_tai(self, hang_doi_viec):
+        while not hang_doi_viec.empty() and not self.trang_thai_loi and not self.trang_thai_huy:
             try:
-                start_goc, end, idx = hang_doi.get_nowait()
+                diem_bat_dau, diem_ket_thuc, chi_so = hang_doi_viec.get_nowait()
             except queue.Empty:
                 break
                 
-            part_file = f"{self.file_luu}.part{idx}"
-            start_hien_tai = start_goc
+            ten_file_tam = f"{self.duong_dan_luu}.phan{chi_so}"
+            diem_hien_tai = diem_bat_dau
             
-            if os.path.exists(part_file):
-                dung_luong_da_tai = os.path.getsize(part_file)
-                if dung_luong_da_tai == (end - start_goc + 1):
-                    with self.khoa:
-                        self.da_tai += dung_luong_da_tai
-                    hang_doi.task_done()
+            if os.path.exists(ten_file_tam):
+                dung_luong_hien_co = os.path.getsize(ten_file_tam)
+                if dung_luong_hien_co == (diem_ket_thuc - diem_bat_dau + 1):
+                    with self.khoa_luong:
+                        self.dung_luong_da_tai += dung_luong_hien_co
+                    hang_doi_viec.task_done()
                     continue
                 else:
-                    start_hien_tai += dung_luong_da_tai
-                    with self.khoa:
-                        self.da_tai += dung_luong_da_tai
+                    diem_hien_tai += dung_luong_hien_co
+                    with self.khoa_luong:
+                        self.dung_luong_da_tai += dung_luong_hien_co
 
-            so_lan_thu = 0
+            so_lan_thu_lai = 0
             thanh_cong = False
-            while so_lan_thu < 10 and not thanh_cong and not self.loi and not self.huy_tai:
+            while so_lan_thu_lai < 10 and not thanh_cong and not self.trang_thai_loi and not self.trang_thai_huy:
                 try:
-                    req = urllib.request.Request(self.url, headers={'Range': f'bytes={start_hien_tai}-{end}', **self.tieu_de})
-                    with urllib.request.urlopen(req, timeout=10) as res, open(part_file, 'ab') as f:
+                    yeu_cau = urllib.request.Request(self.duong_dan_mang, headers={'Range': f'bytes={diem_hien_tai}-{diem_ket_thuc}', **self.tieu_de_mang})
+                    with urllib.request.urlopen(yeu_cau, timeout=10) as phan_hoi, open(ten_file_tam, 'ab') as file_tam:
                         while True:
-                            if self.huy_tai:
+                            if self.trang_thai_huy:
                                 break
-                            chunk = res.read(262144) 
-                            if not chunk:
+                            khoi_du_lieu = phan_hoi.read(262144) 
+                            if not khoi_du_lieu:
                                 break
-                            f.write(chunk)
-                            with self.khoa:
-                                self.da_tai += len(chunk)
-                            start_hien_tai += len(chunk)
+                            file_tam.write(khoi_du_lieu)
+                            with self.khoa_luong:
+                                self.dung_luong_da_tai += len(khoi_du_lieu)
+                            diem_hien_tai += len(khoi_du_lieu)
                     thanh_cong = True
                 except Exception:
-                    so_lan_thu += 1
+                    so_lan_thu_lai += 1
                     time.sleep(1)
                     
-            if not thanh_cong and not self.huy_tai:
-                self.loi = True
-            hang_doi.task_done()
+            if not thanh_cong and not self.trang_thai_huy:
+                self.trang_thai_loi = True
+            hang_doi_viec.task_done()
 
-    def chay(self):
-        hang_doi = queue.Queue()
-        kieu_chunk = 50 * 1024 * 1024
-        so_chunk = self.tong_dung_luong // kieu_chunk
-        if self.tong_dung_luong % kieu_chunk != 0:
-            so_chunk += 1
+    def khoi_chay_dong_co(self):
+        hang_doi_viec = queue.Queue()
+        kich_thuoc_cuc = 50 * 1024 * 1024
+        so_luong_cuc = self.tong_dung_luong // kich_thuoc_cuc
+        if self.tong_dung_luong % kich_thuoc_cuc != 0:
+            so_luong_cuc += 1
 
-        for i in range(so_chunk):
-            start = i * kieu_chunk
-            end = min(start + kieu_chunk - 1, self.tong_dung_luong - 1)
-            hang_doi.put((start, end, i))
+        for i in range(so_luong_cuc):
+            diem_bat_dau = i * kich_thuoc_cuc
+            diem_ket_thuc = min(diem_bat_dau + kich_thuoc_cuc - 1, self.tong_dung_luong - 1)
+            hang_doi_viec.put((diem_bat_dau, diem_ket_thuc, i))
 
-        luong_list = []
-        for _ in range(self.so_luong):
-            t = threading.Thread(target=self.tho_tai, args=(hang_doi,))
-            t.start()
-            luong_list.append(t)
+        danh_sach_luong = []
+        for _ in range(self.so_luong_luong):
+            luong_moi = threading.Thread(target=self.luong_thuc_thi_tai, args=(hang_doi_viec,))
+            luong_moi.start()
+            danh_sach_luong.append(luong_moi)
 
-        for t in luong_list:
-            t.join()
+        for luong in danh_sach_luong:
+            luong.join()
 
-        if self.huy_tai:
-            self.don_rac(so_chunk)
-            return False
-        if self.loi:
+        if self.trang_thai_huy or self.trang_thai_loi:
+            self.don_dep_file_rac(so_luong_cuc)
             return False
 
-        with open(self.file_luu, 'wb') as outfile:
-            for i in range(so_chunk):
-                part_file = f"{self.file_luu}.part{i}"
-                if os.path.exists(part_file):
-                    with open(part_file, 'rb') as infile:
-                        outfile.write(infile.read())
-                    os.remove(part_file)
+        with open(self.duong_dan_luu, 'wb') as file_dich:
+            for i in range(so_luong_cuc):
+                ten_file_tam = f"{self.duong_dan_luu}.phan{i}"
+                if os.path.exists(ten_file_tam):
+                    with open(ten_file_tam, 'rb') as file_nguon:
+                        file_dich.write(file_nguon.read())
+                    os.remove(ten_file_tam)
         return True
 
-    def don_rac(self, so_chunk):
-        for i in range(so_chunk):
-            p = f"{self.file_luu}.part{i}"
-            if os.path.exists(p):
-                try:
-                    os.remove(p)
-                except:
-                    pass
+    def don_dep_file_rac(self, so_luong_cuc):
+        for i in range(so_luong_cuc):
+            file_rac = f"{self.duong_dan_luu}.phan{i}"
+            if os.path.exists(file_rac):
+                try: os.remove(file_rac)
+                except: pass
 
 # ==============================================================================
-# LỚP GIAO DIỆN VÀ XỬ LÝ CHÍNH
+# LÕI 2: TIỆN ÍCH XỬ LÝ HỆ THỐNG VÀ REGISTRY (VIETTOOLBOX CORE)
 # ==============================================================================
-class UngDungCaiDatOffice:
-    def __init__(self, cua_so_chinh):
-        self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - Max Speed (V9.2 Format Fixed)")
-        self.cua_so.geometry("640x720")
-        self.cua_so.resizable(False, False)
+class TienIchHeThong:
+    @staticmethod
+    def tao_loi_tat_man_hinh(ham_cap_nhat_trang_thai):
+        ham_cap_nhat_trang_thai("⏳ Đang tìm và đưa Shortcut ra màn hình Desktop...")
+        thu_muc_man_hinh = os.path.join(os.environ['USERPROFILE'], 'Desktop')
+        danh_sach_thu_muc = [
+            os.environ.get('ProgramFiles', 'C:\\Program Files') + "\\Microsoft Office\\root\\Office16",
+            os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)') + "\\Microsoft Office\\root\\Office16"
+        ]
+        danh_sach_ung_dung = {"WINWORD.EXE": "Word", "EXCEL.EXE": "Excel", "POWERPNT.EXE": "PowerPoint", "MSACCESS.EXE": "Access", "OUTLOOK.EXE": "Outlook"}
+        
+        for thu_muc in danh_sach_thu_muc:
+            if os.path.exists(thu_muc):
+                for ten_file_exe, ten_hien_thi in danh_sach_ung_dung.items():
+                    duong_dan_exe = os.path.join(thu_muc, ten_file_exe)
+                    if os.path.exists(duong_dan_exe):
+                        duong_dan_shortcut = os.path.join(thu_muc_man_hinh, f"{ten_hien_thi}.lnk")
+                        ma_lenh_vbs = f'Set ws = CreateObject("WScript.Shell")\nSet link = ws.CreateShortcut("{duong_dan_shortcut}")\nlink.TargetPath = "{duong_dan_exe}"\nlink.Save'
+                        file_vbs = os.path.join(os.environ['TEMP'], 'tao_shortcut.vbs')
+                        with open(file_vbs, 'w', encoding='utf-8') as f:
+                            f.write(ma_lenh_vbs)
+                        subprocess.run(['cscript', '//nologo', file_vbs], creationflags=subprocess.CREATE_NO_WINDOW)
+                break
+
+    @staticmethod
+    def doi_tien_trinh_ket_thuc(ten_tien_trinh, ham_cap_nhat_trang_thai):
+        ham_cap_nhat_trang_thai(f"⏳ Đang theo dõi tiến trình hệ thống ({ten_tien_trinh})...")
+        while True:
+            ket_qua_kiem_tra = subprocess.run(f'tasklist /FI "IMAGENAME eq {ten_tien_trinh}"', shell=True, capture_output=True, text=True)
+            if ten_tien_trinh.lower() not in ket_qua_kiem_tra.stdout.lower():
+                break
+            time.sleep(2)
+
+    @staticmethod
+    def don_dep_registry_chuyen_sau(ham_cap_nhat_trang_thai):
+        ham_cap_nhat_trang_thai("🧹 Đang kích hoạt Deep Clean: Tiêu diệt tiến trình ngầm...")
+        os.system('taskkill /F /IM ClickToRunSvc.exe >nul 2>&1')
+        os.system('taskkill /F /IM OfficeClickToRun.exe >nul 2>&1')
+        os.system('taskkill /F /IM WINWORD.EXE >nul 2>&1')
+        os.system('taskkill /F /IM EXCEL.EXE >nul 2>&1')
+        
+        ham_cap_nhat_trang_thai("🧹 Đang Deep Clean: Quét sạch Registry rác...")
+        danh_sach_khoa = [
+            r"HKCU\Software\Microsoft\Office",
+            r"HKLM\SOFTWARE\Microsoft\Office",
+            r"HKLM\SOFTWARE\WOW6432Node\Microsoft\Office",
+            r"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\O365ProPlusRetail - vi-vn"
+        ]
+        for khoa_reg in danh_sach_khoa:
+            os.system(f'reg delete "{khoa_reg}" /f >nul 2>&1')
+            
+        ham_cap_nhat_trang_thai("🧹 Đang Deep Clean: Xóa tàn dư trong ổ C:...")
+        thu_muc_rac = [
+            os.path.join(os.environ.get('ProgramFiles', 'C:\\Program Files'), "Microsoft Office"),
+            os.path.join(os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)'), "Microsoft Office"),
+            os.path.join(os.environ.get('ProgramData', 'C:\\ProgramData'), "Microsoft\\Office")
+        ]
+        for thu_muc in thu_muc_rac:
+            if os.path.exists(thu_muc):
+                try: shutil.rmtree(thu_muc, ignore_errors=True)
+                except: pass
+
+    @staticmethod
+    def kich_hoat_ohook_ngam(tham_so):
+        duong_dan_mang = f"https://gist.githubusercontent.com/tuantran19912512/81329d670436ea8492b73bd5889ad444/raw/Ohook.cmd?t={time.time()}"
+        file_tam = os.path.join(os.environ['TEMP'], "O.cmd")
+        try:
+            with open(file_tam, 'w', encoding='utf-8') as f:
+                f.write(urllib.request.urlopen(duong_dan_mang).read().decode('utf-8').replace("\n", "\r\n"))
+            subprocess.run(["cmd.exe", "/c", file_tam, tham_so], creationflags=subprocess.CREATE_NO_WINDOW)
+        except: pass
+        finally:
+            if os.path.exists(file_tam):
+                try: os.remove(file_tam)
+                except: pass
+
+# ==============================================================================
+# LÕI 3: GIAO DIỆN CHÍNH (VIETTOOLBOX GUI)
+# ==============================================================================
+class TrienKhaiOffice(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("VietToolbox - Triển khai Microsoft Office (V10.0 Lõi Kép)")
+        self.geometry("640x720")
+        self.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
-        self.thu_muc_luu_file = tk.StringVar(value=os.getcwd())
-        self.may_tai_hien_tai = None
-        self.xay_dung_giao_dien()
+        self.thu_muc_lam_viec = tk.StringVar(value=os.getcwd())
+        self.tien_trinh_tai_mang = None
+        self.xay_dung_bo_khung_giao_dien()
 
-    def tao_nut_bam_mau(self, khung_chua, chu_hien_thi, mau_nen, mau_chu="white", hanh_dong=None, width=20):
-        return tk.Button(khung_chua, text=chu_hien_thi, bg=mau_nen, fg=mau_chu, font=self.phong_chu_dam, relief="flat", cursor="hand2", command=hanh_dong, width=width, pady=6)
+    def tao_nut_bam(self, khung_chua, chu_hien_thi, mau_nen, hanh_dong=None, do_rong=20):
+        return tk.Button(khung_chua, text=chu_hien_thi, bg=mau_nen, fg="white", font=self.phong_chu_dam, relief="flat", cursor="hand2", command=hanh_dong, width=do_rong, pady=6)
 
-    def xay_dung_giao_dien(self):
-        khung_tieu_de = tk.Frame(self.cua_so, bg="#E64A19", height=65)
+    def cap_nhat_trang_thai(self, tin_nhan):
+        self.after(0, lambda: self.nhan_trang_thai.config(text=tin_nhan))
+
+    def xay_dung_bo_khung_giao_dien(self):
+        khung_tieu_de = tk.Frame(self, bg="#1565C0", height=65)
         khung_tieu_de.pack(fill="x", side="top")
-        tk.Label(khung_tieu_de, text="🏢 CÀI ĐẶT MICROSOFT OFFICE RETAIL", font=("Segoe UI", 14, "bold"), bg="#E64A19", fg="white").place(x=15, y=8)
-        tk.Label(khung_tieu_de, text="Kiến trúc tải C2R thông minh (~2.9GB) Max Speed", font=("Segoe UI", 9), bg="#E64A19", fg="white").place(x=40, y=35)
+        tk.Label(khung_tieu_de, text="VIETTOOLBOX - BỘ CÀI ĐẶT MICROSOFT OFFICE", font=("Segoe UI", 13, "bold"), bg="#1565C0", fg="white").place(x=15, y=10)
+        tk.Label(khung_tieu_de, text="Bản quyền công nghệ thuộc về hệ sinh thái VietToolbox", font=("Segoe UI", 8), bg="#1565C0", fg="#BBDEFB").place(x=18, y=35)
 
-        hop_tab = ttk.Notebook(self.cua_so)
-        hop_tab.pack(fill="both", expand=True, padx=12, pady=12)
+        hop_dieu_huong = ttk.Notebook(self)
+        hop_dieu_huong.pack(fill="both", expand=True, padx=12, pady=12)
 
-        tab_cai_dat = ttk.Frame(hop_tab)
-        tab_go_cai_dat = ttk.Frame(hop_tab)
-        hop_tab.add(tab_cai_dat, text="  ⚙️ Cài đặt & Kích hoạt  ")
-        hop_tab.add(tab_go_cai_dat, text="  🗑️ Gỡ Cài Đặt & Dọn Dẹp  ")
+        tab_cai_dat = ttk.Frame(hop_dieu_huong)
+        tab_go_cai_dat = ttk.Frame(hop_dieu_huong)
+        hop_dieu_huong.add(tab_cai_dat, text="  ⚙️ Triển Khai & Kích Hoạt  ")
+        hop_dieu_huong.add(tab_go_cai_dat, text="  🗑️ Gỡ Bỏ & Dọn Dẹp Rác  ")
 
-        self.xay_dung_tab_cai_dat(tab_cai_dat)
-        self.xay_dung_tab_go_cai_dat(tab_go_cai_dat)
+        self.thiet_ke_tab_cai_dat(tab_cai_dat)
+        self.thiet_ke_tab_go_cai_dat(tab_go_cai_dat)
 
-        khung_trang_thai = tk.Frame(self.cua_so, bg="#E0F7FA")
+        khung_trang_thai = tk.Frame(self, bg="#E3F2FD")
         khung_trang_thai.pack(fill="x", padx=12, pady=(0, 12))
-        self.nhan_trang_thai = tk.Label(khung_trang_thai, text="✅ Sẵn sàng kết nối tới hệ thống...", font=self.phong_chu_dam, fg="#2E7D32", bg="#E0F7FA")
+        self.nhan_trang_thai = tk.Label(khung_trang_thai, text="✅ Hệ thống VietToolbox sẵn sàng nhận lệnh...", font=self.phong_chu_dam, fg="#1565C0", bg="#E3F2FD")
         self.nhan_trang_thai.pack(anchor="w", padx=10, pady=(10, 5))
         self.thanh_tien_do = ttk.Progressbar(khung_trang_thai, mode='determinate')
         self.thanh_tien_do.pack(fill="x", padx=12, pady=(0, 10))
 
-    def xay_dung_tab_cai_dat(self, tab):
-        khung_phien_ban = ttk.LabelFrame(tab, text=" 📄 Phiên bản Office ")
+    def thiet_ke_tab_cai_dat(self, tab):
+        khung_phien_ban = ttk.LabelFrame(tab, text=" 📄 Chọn Phiên Bản Office ")
         khung_phien_ban.pack(fill="x", padx=10, pady=8, ipady=3)
-        self.bien_phien_ban = tk.StringVar(value="2024")
-        danh_sach_ban = ["Office 2016", "Office 2019", "Office 2021", "Office 2024", "Office 365"]
-        khung_rb = ttk.Frame(khung_phien_ban)
-        khung_rb.pack(fill="x", padx=10, pady=2)
-        self.bien_phien_ban.trace_add("write", self.cap_nhat_hop_chon)
-        for vi_tri, ten_ban in enumerate(danh_sach_ban):
-            ttk.Radiobutton(khung_rb, text=ten_ban, variable=self.bien_phien_ban, value=ten_ban.split()[-1]).grid(row=0, column=vi_tri, padx=6)
+        self.bien_nam_phien_ban = tk.StringVar(value="2024")
+        danh_sach_nam = ["Office 2016", "Office 2019", "Office 2021", "Office 2024", "Office 365"]
+        khung_chon_nam = ttk.Frame(khung_phien_ban)
+        khung_chon_nam.pack(fill="x", padx=10, pady=2)
+        self.bien_nam_phien_ban.trace_add("write", self.cap_nhat_danh_sach_ban_con)
+        for vi_tri, ten_nam in enumerate(danh_sach_nam):
+            ttk.Radiobutton(khung_chon_nam, text=ten_nam, variable=self.bien_nam_phien_ban, value=ten_nam.split()[-1]).grid(row=0, column=vi_tri, padx=6)
             
-        khung_cb = ttk.Frame(khung_phien_ban)
-        khung_cb.pack(fill="x", padx=10, pady=5)
-        ttk.Label(khung_cb, text="Phiên bản con:").pack(side="left", padx=(0, 10))
-        self.hop_chon_ban_con = ttk.Combobox(khung_cb, state="readonly", width=35)
-        self.cap_nhat_hop_chon()
-        self.hop_chon_ban_con.pack(side="left")
+        khung_chon_chi_tiet = ttk.Frame(khung_phien_ban)
+        khung_chon_chi_tiet.pack(fill="x", padx=10, pady=5)
+        ttk.Label(khung_chon_chi_tiet, text="Loại giấy phép:").pack(side="left", padx=(0, 10))
+        self.danh_sach_tha_xuong = ttk.Combobox(khung_chon_chi_tiet, state="readonly", width=35)
+        self.cap_nhat_danh_sach_ban_con()
+        self.danh_sach_tha_xuong.pack(side="left")
 
-        khung_ngang = ttk.Frame(tab)
-        khung_ngang.pack(fill="x", padx=10, pady=5)
-        khung_kt = ttk.LabelFrame(khung_ngang, text=" ⚙️ Kiến trúc ")
-        khung_kt.pack(side="left", fill="both", expand=True, padx=(0, 5))
-        self.bien_kien_truc = tk.StringVar(value="64")
-        ttk.Radiobutton(khung_kt, text="64-bit", variable=self.bien_kien_truc, value="64").pack(side="left", padx=15, pady=5)
-        ttk.Radiobutton(khung_kt, text="32-bit", variable=self.bien_kien_truc, value="32").pack(side="right", padx=15, pady=5)
+        khung_ngang_thong_so = ttk.Frame(tab)
+        khung_ngang_thong_so.pack(fill="x", padx=10, pady=5)
+        khung_kien_truc = ttk.LabelFrame(khung_ngang_thong_so, text=" ⚙️ Kiến trúc HĐH ")
+        khung_kien_truc.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        self.bien_nen_tang = tk.StringVar(value="64")
+        ttk.Radiobutton(khung_kien_truc, text="64-bit", variable=self.bien_nen_tang, value="64").pack(side="left", padx=15, pady=5)
+        ttk.Radiobutton(khung_kien_truc, text="32-bit", variable=self.bien_nen_tang, value="32").pack(side="right", padx=15, pady=5)
 
-        khung_nn = ttk.LabelFrame(khung_ngang, text=" 🌐 Ngôn ngữ ")
-        khung_nn.pack(side="right", fill="both", expand=True, padx=(5, 0))
-        self.hop_chon_ngon_ngu = ttk.Combobox(khung_nn, values=["English (US) - en-US", "Vietnamese - vi-VN"], state="readonly")
+        khung_ngon_ngu = ttk.LabelFrame(khung_ngang_thong_so, text=" 🌐 Ngôn ngữ ")
+        khung_ngon_ngu.pack(side="right", fill="both", expand=True, padx=(5, 0))
+        self.hop_chon_ngon_ngu = ttk.Combobox(khung_ngon_ngu, values=["English (US) - en-US", "Vietnamese - vi-VN"], state="readonly")
         self.hop_chon_ngon_ngu.current(0)
         self.hop_chon_ngon_ngu.pack(fill="x", padx=10, pady=6)
 
-        khung_ud = ttk.LabelFrame(tab, text=" ☑️ Chọn ứng dụng cần cài ")
-        khung_ud.pack(fill="x", padx=10, pady=5)
-        danh_sach_app = [("Access",0,0),("Excel",0,1),("Word",0,2),("PowerPoint",1,0),("Outlook",1,1),("Publisher",1,2),("OneNote",2,0),("Skype",2,1),("Teams",2,2)]
-        self.cac_bien_ung_dung = {}
-        for ten, r, c in danh_sach_app:
-            var = tk.BooleanVar(value=True)
-            self.cac_bien_ung_dung[ten] = var
-            ttk.Checkbutton(khung_ud, text=f" {ten}", variable=var).grid(row=r, column=c, sticky="w", padx=25, pady=4)
+        khung_ung_dung = ttk.LabelFrame(tab, text=" ☑️ Thành phần cài đặt ")
+        khung_ung_dung.pack(fill="x", padx=10, pady=5)
+        mang_ung_dung = [("Access",0,0),("Excel",0,1),("Word",0,2),("PowerPoint",1,0),("Outlook",1,1),("Publisher",1,2),("OneNote",2,0),("Skype",2,1),("Teams",2,2)]
+        self.tu_dien_tich_chon = {}
+        for ten_ung_dung, hang, cot in mang_ung_dung:
+            bien_tich = tk.BooleanVar(value=True)
+            self.tu_dien_tich_chon[ten_ung_dung] = bien_tich
+            ttk.Checkbutton(khung_ung_dung, text=f" {ten_ung_dung}", variable=bien_tich).grid(row=hang, column=cot, sticky="w", padx=25, pady=4)
 
-        khung_luu = ttk.LabelFrame(tab, text=" 📂 Thư mục chứa cấu trúc cài đặt C2R ")
-        khung_luu.pack(fill="x", padx=10, pady=5)
-        khung_con_luu = ttk.Frame(khung_luu)
-        khung_con_luu.pack(fill="x", padx=10, pady=8)
-        ttk.Entry(khung_con_luu, textvariable=self.thu_muc_luu_file, state="readonly").pack(side="left", fill="x", expand=True, padx=(0, 10))
-        self.tao_nut_bam_mau(khung_con_luu, "Đổi Thư Mục", "#757575", width=12, hanh_dong=self.chon_thu_muc).pack(side="right")
+        khung_luu_tru = ttk.LabelFrame(tab, text=" 📂 Thư mục làm việc & Lưu trữ lõi C2R ")
+        khung_luu_tru.pack(fill="x", padx=10, pady=5)
+        khung_con_luu_tru = ttk.Frame(khung_luu_tru)
+        khung_con_luu_tru.pack(fill="x", padx=10, pady=8)
+        ttk.Entry(khung_con_luu_tru, textvariable=self.thu_muc_lam_viec, state="readonly").pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.tao_nut_bam(khung_con_luu_tru, "Đổi Thư Mục", "#757575", hanh_dong=self.hanh_dong_chon_thu_muc, do_rong=12).pack(side="right")
 
-        khung_tc = ttk.LabelFrame(tab, text=" 🔧 Tùy chọn tự động sau cài đặt ")
-        khung_tc.pack(fill="x", padx=10, pady=5)
-        self.bien_tu_dong_ohook = tk.BooleanVar(value=True)
-        ttk.Checkbutton(khung_tc, text="Tự động Kích hoạt Ohook", variable=self.bien_tu_dong_ohook).pack(side="left", padx=25, pady=6)
-        self.bien_tao_shortcut = tk.BooleanVar(value=True)
-        ttk.Checkbutton(khung_tc, text="Đưa lối tắt ra Desktop", variable=self.bien_tao_shortcut).pack(side="left", padx=25, pady=6)
+        khung_tuy_chon_phu = ttk.LabelFrame(tab, text=" 🔧 Hành động tự động sau khi cài ")
+        khung_tuy_chon_phu.pack(fill="x", padx=10, pady=5)
+        self.bien_tu_dong_crack = tk.BooleanVar(value=True)
+        ttk.Checkbutton(khung_tuy_chon_phu, text="Tự động nhúng thuốc Ohook", variable=self.bien_tu_dong_crack).pack(side="left", padx=25, pady=6)
+        self.bien_tu_dong_shortcut = tk.BooleanVar(value=True)
+        ttk.Checkbutton(khung_tuy_chon_phu, text="Gắn lối tắt ra Desktop", variable=self.bien_tu_dong_shortcut).pack(side="left", padx=25, pady=6)
 
-        khung_btn = ttk.Frame(tab)
-        khung_btn.pack(fill="x", padx=10, pady=5)
-        self.tao_nut_bam_mau(khung_btn, "💊 KÍCH HOẠT OHOOK", "#F57C00", hanh_dong=self.khoi_dong_thuoc).pack(side="left", padx=5)
-        self.nut_cai_dat = self.tao_nut_bam_mau(khung_btn, "🚀 BẮT ĐẦU CÀI ĐẶT", "#0288D1", hanh_dong=self.khoi_dong_cai_dat)
-        self.nut_cai_dat.pack(side="right", padx=5)
+        khung_dieu_khien = ttk.Frame(tab)
+        khung_dieu_khien.pack(fill="x", padx=10, pady=5)
+        self.tao_nut_bam(khung_dieu_khien, "💊 BƠM THUỐC OHOOK", "#F57C00", hanh_dong=self.hanh_dong_bom_thuoc).pack(side="left", padx=5)
+        self.nut_bat_dau_cai = self.tao_nut_bam(khung_dieu_khien, "🚀 BẮT ĐẦU TRIỂN KHAI", "#1565C0", hanh_dong=self.hanh_dong_cai_dat)
+        self.nut_bat_dau_cai.pack(side="right", padx=5)
 
-    def xay_dung_tab_go_cai_dat(self, tab):
-        khung_go_office = ttk.LabelFrame(tab, text=" 🗑️ Gỡ Cài Đặt Office Kèm Deep Clean Registry ")
+    def thiet_ke_tab_go_cai_dat(self, tab):
+        khung_go_office = ttk.LabelFrame(tab, text=" 🗑️ VietToolbox Deep Clean (Gỡ Cài Đặt + Xóa Sạch Registry) ")
         khung_go_office.pack(fill="x", padx=10, pady=10)
-        ttk.Label(khung_go_office, text="Thao tác này gọi trình gỡ cài đặt gốc của Microsoft, sau đó sẽ\nQUÉT SẠCH toàn bộ Registry và thư mục rác để chống lỗi đụng độ.", justify="left").pack(anchor="w", padx=15, pady=5)
+        ttk.Label(khung_go_office, text="Chức năng này gọi bộ gỡ chuẩn của Microsoft, sau đó sử dụng thuật toán\ncủa VietToolbox để rà soát và tiêu diệt mọi file rác, khóa Registry tồn đọng.", justify="left").pack(anchor="w", padx=15, pady=5)
         khung_nut_go = ttk.Frame(khung_go_office)
         khung_nut_go.pack(fill="x", padx=10, pady=5)
-        self.tao_nut_bam_mau(khung_nut_go, "🗑 BẮT ĐẦU GỠ & CLEAN", "#D32F2F", hanh_dong=self.khoi_dong_go_office).pack(side="right", padx=5, pady=5)
+        self.tao_nut_bam(khung_nut_go, "🗑 BẮT ĐẦU GỠ & CLEAN", "#D32F2F", hanh_dong=self.hanh_dong_go_office).pack(side="right", padx=5, pady=5)
 
-        khung_go_kms = ttk.LabelFrame(tab, text=" 🧹 Gỡ Crack KMS / Reset Bản Quyền ")
+        khung_go_kms = ttk.LabelFrame(tab, text=" 🧹 Dọn dẹp máy chủ KMS ảo ")
         khung_go_kms.pack(fill="x", padx=10, pady=10)
-        ttk.Label(khung_go_kms, text="Dọn dẹp các máy chủ KMS ảo, làm sạch Registry kích hoạt lậu và\nđưa trạng thái bản quyền Office về như máy mới (Rearm).", justify="left").pack(anchor="w", padx=15, pady=5)
+        ttk.Label(khung_go_kms, text="Bóc tách và xóa bỏ mọi cấu hình kích hoạt lậu KMS cũ, đưa trạng thái\nbản quyền Office về nguyên bản (Rearm).", justify="left").pack(anchor="w", padx=15, pady=5)
         khung_nut_kms = ttk.Frame(khung_go_kms)
         khung_nut_kms.pack(fill="x", padx=10, pady=5)
-        self.tao_nut_bam_mau(khung_nut_kms, "🧹 DỌN DẸP KMS", "#1976D2", hanh_dong=self.khoi_dong_go_kms).pack(side="right", padx=5, pady=5)
+        self.tao_nut_bam(khung_nut_kms, "🧹 DỌN SẠCH KMS", "#1976D2", hanh_dong=self.hanh_dong_go_kms).pack(side="right", padx=5, pady=5)
 
         khung_go_ohook = ttk.LabelFrame(tab, text=" 💊 Gỡ Crack Ohook ")
         khung_go_ohook.pack(fill="x", padx=10, pady=10)
-        ttk.Label(khung_go_ohook, text="Gỡ bỏ hoàn toàn Hook kích hoạt bản quyền vĩnh viễn (Ohook)\nvà trả lại các file hệ thống nguyên bản cho ứng dụng Office.", justify="left").pack(anchor="w", padx=15, pady=5)
+        ttk.Label(khung_go_ohook, text="Xóa sạch mã nhúng Ohook và hoàn nguyên cấu trúc thư mục bảo mật.", justify="left").pack(anchor="w", padx=15, pady=5)
         khung_nut_ohook = ttk.Frame(khung_go_ohook)
         khung_nut_ohook.pack(fill="x", padx=10, pady=5)
-        self.tao_nut_bam_mau(khung_nut_ohook, "🛡️ GỠ OHOOK TRIỆT ĐỂ", "#7B1FA2", hanh_dong=self.khoi_dong_go_ohook_xoa).pack(side="right", padx=5, pady=5)
+        self.tao_nut_bam(khung_nut_ohook, "🛡️ RÚT THUỐC OHOOK", "#7B1FA2", hanh_dong=self.hanh_dong_rut_thuoc_ohook).pack(side="right", padx=5, pady=5)
 
-    def cap_nhat_hop_chon(self, *args):
-        if self.bien_phien_ban.get() == "365":
-            self.hop_chon_ban_con['values'] = ["ProPlus", "Business", "Home Premium"]
+    def cap_nhat_danh_sach_ban_con(self, *args):
+        if self.bien_nam_phien_ban.get() == "365":
+            self.danh_sach_tha_xuong['values'] = ["ProPlus", "Business", "Home Premium"]
         else:
-            self.hop_chon_ban_con['values'] = ["ProPlus", "Standard", "Home & Business", "Home & Student"]
-        self.hop_chon_ban_con.current(0)
+            self.danh_sach_tha_xuong['values'] = ["ProPlus", "Standard", "Home & Business", "Home & Student"]
+        self.danh_sach_tha_xuong.current(0)
 
-    def chon_thu_muc(self):
-        thu_muc_moi = filedialog.askdirectory(initialdir=self.thu_muc_luu_file.get(), title="Chọn thư mục tải bản cài")
-        if thu_muc_moi:
-            if os.path.exists(thu_muc_moi) and os.access(thu_muc_moi, os.W_OK):
-                self.thu_muc_luu_file.set(thu_muc_moi)
+    def hanh_dong_chon_thu_muc(self):
+        duong_dan_moi = filedialog.askdirectory(initialdir=self.thu_muc_lam_viec.get(), title="Chọn thư mục tải bản cài")
+        if duong_dan_moi:
+            if os.path.exists(duong_dan_moi) and os.access(duong_dan_moi, os.W_OK):
+                self.thu_muc_lam_viec.set(duong_dan_moi)
             else:
-                messagebox.showerror("Lỗi Truy Cập", "Thư mục không hợp lệ hoặc không có quyền ghi.")
+                messagebox.showerror("Lỗi Truy Cập", "VietToolbox không có quyền ghi vào thư mục này.")
 
-    def tao_loi_tat_desktop(self):
-        self.cap_nhat_trang_thai("⏳ Đang tìm và đưa Shortcut ra màn hình Desktop...")
-        desktop = os.path.join(os.environ['USERPROFILE'], 'Desktop')
-        cac_thu_muc = [
-            os.environ.get('ProgramFiles', 'C:\\Program Files') + "\\Microsoft Office\\root\\Office16",
-            os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)') + "\\Microsoft Office\\root\\Office16"
-        ]
-        cac_ung_dung = {"WINWORD.EXE": "Word", "EXCEL.EXE": "Excel", "POWERPNT.EXE": "PowerPoint", "MSACCESS.EXE": "Access", "OUTLOOK.EXE": "Outlook"}
-        
-        for thu_muc in cac_thu_muc:
-            if os.path.exists(thu_muc):
-                for file_exe, ten_app in cac_ung_dung.items():
-                    muc_tieu = os.path.join(thu_muc, file_exe)
-                    if os.path.exists(muc_tieu):
-                        duong_dan_lnk = os.path.join(desktop, f"{ten_app}.lnk")
-                        ma_vbs = f'Set ws = CreateObject("WScript.Shell")\nSet link = ws.CreateShortcut("{duong_dan_lnk}")\nlink.TargetPath = "{muc_tieu}"\nlink.Save'
-                        file_vbs = os.path.join(os.environ['TEMP'], 'tao_shortcut.vbs')
-                        with open(file_vbs, 'w', encoding='utf-8') as f:
-                            f.write(ma_vbs)
-                        subprocess.run(['cscript', '//nologo', file_vbs], creationflags=subprocess.CREATE_NO_WINDOW)
-                break
+    def chuan_bi_setup_exe(self, thu_muc_luu_tru=None):
+        duong_dan_setup = os.path.join(thu_muc_luu_tru or os.environ['TEMP'], "setup.exe")
+            
+        if os.path.exists(duong_dan_setup) and os.path.getsize(duong_dan_setup) > 2000000:
+            self.cap_nhat_trang_thai("♻️ Đã tìm thấy lõi Setup.exe, VietToolbox đang tái sử dụng...")
+            return duong_dan_setup
 
-    def huy_tien_trinh(self):
-        if messagebox.askyesno("Xác nhận hủy", "Bạn có chắc chắn muốn ngừng tải và hủy bỏ quá trình cài đặt không?"):
-            if self.may_tai_hien_tai:
-                self.may_tai_hien_tai.huy_tai = True
-            self.cap_nhat_trang_thai("⏳ Đang dọn dẹp kết nối và xóa các file tạm...")
-
-    def cho_tien_trinh_ket_thuc(self, ten_tien_trinh="setup.exe"):
-        self.cap_nhat_trang_thai(f"⏳ Đang theo dõi tiến trình {ten_tien_trinh}...")
-        while True:
-            kiem_tra = subprocess.run(f'tasklist /FI "IMAGENAME eq {ten_tien_trinh}"', shell=True, capture_output=True, text=True)
-            if ten_tien_trinh.lower() not in kiem_tra.stdout.lower():
-                break
-            time.sleep(2)
-
-    def khoi_dong_cai_dat(self):
-        self.nut_cai_dat.config(text="🛑 HỦY TẢI & CÀI ĐẶT", bg="#D32F2F", command=self.huy_tien_trinh)
-        threading.Thread(target=self.tien_trinh_cai_dat_thong_minh, daemon=True).start()
-
-    def phuc_hoi_nut_cai_dat(self):
-        self.cua_so.after(0, lambda: self.nut_cai_dat.config(text="🚀 BẮT ĐẦU CÀI ĐẶT", bg="#0288D1", command=self.khoi_dong_cai_dat))
-
-    def tien_trinh_cai_dat_thong_minh(self):
-        nam_pb = self.bien_phien_ban.get()
-        ban_con = self.hop_chon_ban_con.get().replace(" & ", "").replace(" ", "")
-        ma_san_pham = tu_dien_phien_ban.get(f"{nam_pb}_{ban_con}", "ProPlus2024Retail")
-        kien_truc_so = "64" if self.bien_kien_truc.get() == "64" else "32"
-        kien_truc_chu = "x64" if kien_truc_so == "64" else "x86"
-        ngon_ngu = "vi-VN" if "Vietnamese" in self.hop_chon_ngon_ngu.get() else "en-US"
-        ma_lcid = "1066" if ngon_ngu == "vi-VN" else "1033"
-        thu_muc_goc = self.thu_muc_luu_file.get()
-        
-        self.cap_nhat_trang_thai("🔍 Đang dò mã Phiên bản Office mới nhất từ Microsoft...")
-        base_url = "https://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
-        version_hien_tai = None
+        self.cap_nhat_trang_thai("⏳ VietToolbox đang móc nối lấy lõi Setup.exe trực tiếp từ MS WSUS...")
+        link_tai_truc_tiep = "https://officecdn.microsoft.com/pr/wsus/setup.exe"
         try:
-            tm_cab = os.path.join(os.environ['TEMP'], "OfficeCabTemp")
-            if os.path.exists(tm_cab):
-                shutil.rmtree(tm_cab)
-            os.makedirs(tm_cab, exist_ok=True)
-            cab_file = os.path.join(tm_cab, f"v{kien_truc_so}.cab")
-            req = urllib.request.Request(f"{base_url}/Office/Data/v{kien_truc_so}.cab", headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=15) as res, open(cab_file, 'wb') as f:
-                f.write(res.read())
-            subprocess.run(["expand.exe", cab_file, "-F:*.xml", tm_cab], creationflags=subprocess.CREATE_NO_WINDOW)
-            for f_xml in glob.glob(os.path.join(tm_cab, "*.xml")):
-                noi_dung = open(f_xml, 'r', encoding='utf-8', errors='ignore').read()
-                match = re.search(r'Version="(\d{2}\.\d+\.\d+\.\d+)"', noi_dung)
-                if match:
-                    version_hien_tai = match.group(1)
-                    break
-            if not version_hien_tai:
-                raise Exception("Không tìm thấy Version XML")
+            yeu_cau = urllib.request.Request(link_tai_truc_tiep, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(yeu_cau, timeout=30) as phan_hoi, open(duong_dan_setup, 'wb') as file_luu:
+                file_luu.write(phan_hoi.read())
+            if os.path.exists(duong_dan_setup) and os.path.getsize(duong_dan_setup) > 1000000:
+                return duong_dan_setup
+            return None
         except:
-            self.cap_nhat_trang_thai("❌ Lỗi mạng: Không dò được phiên bản Microsoft.")
-            self.phuc_hoi_nut_cai_dat()
+            return None
+
+    def hanh_dong_huy_tai(self):
+        if messagebox.askyesno("Xác nhận hủy", "Hủy bỏ toàn bộ quá trình triển khai?"):
+            if self.tien_trinh_tai_mang:
+                self.tien_trinh_tai_mang.trang_thai_huy = True
+            self.cap_nhat_trang_thai("⏳ Đang dọn dẹp các luồng tải dang dở...")
+
+    def khoi_phuc_nut_cai_dat(self):
+        self.after(0, lambda: self.nut_bat_dau_cai.config(text="🚀 BẮT ĐẦU TRIỂN KHAI", bg="#1565C0", command=self.hanh_dong_cai_dat))
+
+    def hanh_dong_cai_dat(self):
+        self.nut_bat_dau_cai.config(text="🛑 HỦY TRIỂN KHAI", bg="#D32F2F", command=self.hanh_dong_huy_tai)
+        threading.Thread(target=self.luong_xu_ly_cai_dat_chinh, daemon=True).start()
+
+    def luong_xu_ly_cai_dat_chinh(self):
+        ma_nam = self.bien_nam_phien_ban.get()
+        ma_loai = self.danh_sach_tha_xuong.get().replace(" & ", "").replace(" ", "")
+        ma_san_pham = TUDIEN_PHIENBAN.get(f"{ma_nam}_{ma_loai}", "ProPlus2024Retail")
+        nhi_phan_so = "64" if self.bien_nen_tang.get() == "64" else "32"
+        nhi_phan_chu = "x64" if nhi_phan_so == "64" else "x86"
+        ma_ngon_ngu = "vi-VN" if "Vietnamese" in self.hop_chon_ngon_ngu.get() else "en-US"
+        ma_quoc_gia = "1066" if ma_ngon_ngu == "vi-VN" else "1033"
+        thu_muc_goc = self.thu_muc_lam_viec.get()
+        
+        self.cap_nhat_trang_thai("🔍 VietToolbox đang giải mã Cab để lấy phiên bản mới nhất...")
+        duong_dan_goc = "https://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+        phien_ban_moi_nhat = None
+        try:
+            thu_muc_tam_cab = os.path.join(os.environ['TEMP'], "VTCabTemp")
+            if os.path.exists(thu_muc_tam_cab):
+                shutil.rmtree(thu_muc_tam_cab)
+            os.makedirs(thu_muc_tam_cab, exist_ok=True)
+            file_cab = os.path.join(thu_muc_tam_cab, f"v{nhi_phan_so}.cab")
+            yeu_cau = urllib.request.Request(f"{duong_dan_goc}/Office/Data/v{nhi_phan_so}.cab", headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(yeu_cau, timeout=15) as phan_hoi, open(file_cab, 'wb') as f:
+                f.write(phan_hoi.read())
+            subprocess.run(["expand.exe", file_cab, "-F:*.xml", thu_muc_tam_cab], creationflags=subprocess.CREATE_NO_WINDOW)
+            for file_xml in glob.glob(os.path.join(thu_muc_tam_cab, "*.xml")):
+                noi_dung_xml = open(file_xml, 'r', encoding='utf-8', errors='ignore').read()
+                ket_qua_tim = re.search(r'Version="(\d{2}\.\d+\.\d+\.\d+)"', noi_dung_xml)
+                if ket_qua_tim:
+                    phien_ban_moi_nhat = ket_qua_tim.group(1)
+                    break
+            if not phien_ban_moi_nhat:
+                raise Exception("Lỗi đọc XML")
+        except:
+            self.cap_nhat_trang_thai("❌ Lỗi: VietToolbox không thể kết nối tới máy chủ Microsoft.")
+            self.khoi_phuc_nut_cai_dat()
             return
 
-        tm_data = os.path.join(thu_muc_goc, "Office", "Data")
-        tm_version = os.path.join(tm_data, version_hien_tai)
-        os.makedirs(tm_version, exist_ok=True)
+        thu_muc_data = os.path.join(thu_muc_goc, "Office", "Data")
+        thu_muc_version = os.path.join(thu_muc_data, phien_ban_moi_nhat)
+        os.makedirs(thu_muc_version, exist_ok=True)
 
-        danh_sach_tai = [
-            (f"{base_url}/Office/Data/v{kien_truc_so}.cab", os.path.join(tm_data, f"v{kien_truc_so}.cab"), "Danh mục gốc"),
-            (f"{base_url}/Office/Data/v{kien_truc_so}_{version_hien_tai}.cab", os.path.join(tm_data, f"v{kien_truc_so}_{version_hien_tai}.cab"), "Danh mục phiên bản"),
-            (f"{base_url}/Office/Data/{version_hien_tai}/i{kien_truc_so}0.cab", os.path.join(tm_version, f"i{kien_truc_so}0.cab"), "Mục lục lõi"),
-            (f"{base_url}/Office/Data/{version_hien_tai}/s{kien_truc_so}0.cab", os.path.join(tm_version, f"s{kien_truc_so}0.cab"), "Mục lục phụ"),
-            (f"{base_url}/Office/Data/{version_hien_tai}/i{kien_truc_so}{ma_lcid}.cab", os.path.join(tm_version, f"i{kien_truc_so}{ma_lcid}.cab"), "Mục lục ngôn ngữ 1"),
-            (f"{base_url}/Office/Data/{version_hien_tai}/s{kien_truc_so}{ma_lcid}.cab", os.path.join(tm_version, f"s{kien_truc_so}{ma_lcid}.cab"), "Mục lục ngôn ngữ 2"),
-            (f"{base_url}/Office/Data/{version_hien_tai}/stream.{kien_truc_chu}.x-none.dat", os.path.join(tm_version, f"stream.{kien_truc_chu}.x-none.dat"), "Dữ liệu siêu nặng"),
-            (f"{base_url}/Office/Data/{version_hien_tai}/stream.{kien_truc_chu}.{ngon_ngu}.dat", os.path.join(tm_version, f"stream.{kien_truc_chu}.{ngon_ngu}.dat"), "Dữ liệu Ngôn ngữ")
+        danh_sach_link_tai = [
+            (f"{duong_dan_goc}/Office/Data/v{nhi_phan_so}.cab", os.path.join(thu_muc_data, f"v{nhi_phan_so}.cab"), "Danh mục gốc"),
+            (f"{duong_dan_goc}/Office/Data/v{nhi_phan_so}_{phien_ban_moi_nhat}.cab", os.path.join(thu_muc_data, f"v{nhi_phan_so}_{phien_ban_moi_nhat}.cab"), "Danh mục phiên bản"),
+            (f"{duong_dan_goc}/Office/Data/{phien_ban_moi_nhat}/i{nhi_phan_so}0.cab", os.path.join(thu_muc_version, f"i{nhi_phan_so}0.cab"), "Mục lục lõi"),
+            (f"{duong_dan_goc}/Office/Data/{phien_ban_moi_nhat}/s{nhi_phan_so}0.cab", os.path.join(thu_muc_version, f"s{nhi_phan_so}0.cab"), "Mục lục phụ"),
+            (f"{duong_dan_goc}/Office/Data/{phien_ban_moi_nhat}/i{nhi_phan_so}{ma_quoc_gia}.cab", os.path.join(thu_muc_version, f"i{nhi_phan_so}{ma_quoc_gia}.cab"), "Mục lục ngôn ngữ 1"),
+            (f"{duong_dan_goc}/Office/Data/{phien_ban_moi_nhat}/s{nhi_phan_so}{ma_quoc_gia}.cab", os.path.join(thu_muc_version, f"s{nhi_phan_so}{ma_quoc_gia}.cab"), "Mục lục ngôn ngữ 2"),
+            (f"{duong_dan_goc}/Office/Data/{phien_ban_moi_nhat}/stream.{nhi_phan_chu}.x-none.dat", os.path.join(thu_muc_version, f"stream.{nhi_phan_chu}.x-none.dat"), "Dữ liệu cấu trúc lớn"),
+            (f"{duong_dan_goc}/Office/Data/{phien_ban_moi_nhat}/stream.{nhi_phan_chu}.{ma_ngon_ngu}.dat", os.path.join(thu_muc_version, f"stream.{nhi_phan_chu}.{ma_ngon_ngu}.dat"), "Dữ liệu Ngôn ngữ")
         ]
 
-        for url_tai, duong_dan_luu, ten_goi in danh_sach_tai:
-            if self.may_tai_hien_tai and self.may_tai_hien_tai.huy_tai:
+        for link_mang, duong_dan_luu, ten_hien_thi in danh_sach_link_tai:
+            if self.tien_trinh_tai_mang and self.tien_trinh_tai_mang.trang_thai_huy:
                 break
-            req_check = urllib.request.Request(url_tai, method='HEAD', headers={'User-Agent': 'Mozilla/5.0'})
+            yeu_cau_kiem_tra = urllib.request.Request(link_mang, method='HEAD', headers={'User-Agent': 'Mozilla/5.0'})
             try:
-                dung_luong_that = int(urllib.request.urlopen(req_check, timeout=10).headers.get('Content-Length', 0))
+                dung_luong_thuc = int(urllib.request.urlopen(yeu_cau_kiem_tra, timeout=10).headers.get('Content-Length', 0))
             except:
-                dung_luong_that = 0
-            if os.path.exists(duong_dan_luu) and os.path.getsize(duong_dan_luu) == dung_luong_that:
+                dung_luong_thuc = 0
+            if os.path.exists(duong_dan_luu) and os.path.getsize(duong_dan_luu) == dung_luong_thuc:
                 continue
 
-            self.may_tai_hien_tai = DongCoTaiDaLuong(url_tai, duong_dan_luu, 16)
-            if self.may_tai_hien_tai.lay_dung_luong():
-                luong_tai = threading.Thread(target=self.may_tai_hien_tai.chay)
-                luong_tai.start()
-                thoi_gian_bat_dau = time.time()
-                lan_truoc_dl = 0
-                while luong_tai.is_alive():
+            self.tien_trinh_tai_mang = DongCoTaiXuong(link_mang, duong_dan_luu, 16)
+            if self.tien_trinh_tai_mang.kiem_tra_dung_luong():
+                luong_tai_chinh = threading.Thread(target=self.tien_trinh_tai_mang.khoi_chay_dong_co)
+                luong_tai_chinh.start()
+                thoi_gian_truoc = time.time()
+                dung_luong_truoc = 0
+                while luong_tai_chinh.is_alive():
                     time.sleep(0.5)
-                    giay_troi = time.time() - thoi_gian_bat_dau
-                    if giay_troi > 0:
-                        toc_do_mb = ((self.may_tai_hien_tai.da_tai - lan_truoc_dl) / 0.5) / 1048576
-                        phan_tram = (self.may_tai_hien_tai.da_tai / self.may_tai_hien_tai.tong_dung_luong) * 100
-                        self.cua_so.after(0, lambda p=phan_tram: self.thanh_tien_do.config(value=p))
-                        self.cap_nhat_trang_thai(f"⬇️ Đang kéo {ten_goi}: {phan_tram:.1f}% | Tốc độ: {toc_do_mb:.1f} MB/s")
-                    lan_truoc_dl = self.may_tai_hien_tai.da_tai
-                    thoi_gian_bat_dau = time.time()
+                    thoi_gian_troi_qua = time.time() - thoi_gian_truoc
+                    if thoi_gian_troi_qua > 0:
+                        toc_do_mang = ((self.tien_trinh_tai_mang.dung_luong_da_tai - dung_luong_truoc) / 0.5) / 1048576
+                        phan_tram = (self.tien_trinh_tai_mang.dung_luong_da_tai / self.tien_trinh_tai_mang.tong_dung_luong) * 100
+                        self.after(0, lambda p=phan_tram: self.thanh_tien_do.config(value=p))
+                        self.cap_nhat_trang_thai(f"⬇️ {ten_hien_thi}: {phan_tram:.1f}% | Tốc độ: {toc_do_mang:.1f} MB/s")
+                    dung_luong_truoc = self.tien_trinh_tai_mang.dung_luong_da_tai
+                    thoi_gian_truoc = time.time()
 
-                if self.may_tai_hien_tai.huy_tai:
-                    self.cap_nhat_trang_thai("❌ Đã hủy tải xuống thành công.")
-                    self.cua_so.after(0, lambda: self.thanh_tien_do.config(value=0))
-                    self.phuc_hoi_nut_cai_dat()
+                if self.tien_trinh_tai_mang.trang_thai_huy:
+                    self.cap_nhat_trang_thai("❌ Đã dừng luồng tải thành công.")
+                    self.after(0, lambda: self.thanh_tien_do.config(value=0))
+                    self.khoi_phuc_nut_cai_dat()
                     return
-                if self.may_tai_hien_tai.loi:
-                    self.cap_nhat_trang_thai(f"❌ Lỗi mạng khi tải {ten_goi}.")
-                    self.phuc_hoi_nut_cai_dat()
+                if self.tien_trinh_tai_mang.trang_thai_loi:
+                    self.cap_nhat_trang_thai(f"❌ Mạng rớt khi kéo {ten_hien_thi}.")
+                    self.khoi_phuc_nut_cai_dat()
                     return
 
-        self.cua_so.after(0, lambda: self.thanh_tien_do.config(mode='indeterminate', value=0))
-        self.cua_so.after(0, lambda: self.thanh_tien_do.start(15))
-        self.cap_nhat_trang_thai("🚀 Đang khởi động trình cài đặt nội bộ. Vui lòng đợi...")
+        self.after(0, lambda: self.thanh_tien_do.config(mode='indeterminate', value=0))
+        self.after(0, lambda: self.thanh_tien_do.start(15))
+        self.cap_nhat_trang_thai("🚀 Lõi VietToolbox đang nạp cấu trúc vào hệ thống. Vui lòng đợi...")
         
-        duong_dan_setup = self.chuan_bi_cong_cu_odt_cho_go(thu_muc_goc)
+        duong_dan_setup = self.chuan_bi_setup_exe(thu_muc_goc)
         if not duong_dan_setup:
-            self.cap_nhat_trang_thai("❌ Lỗi mạng: Không tải được Setup.exe từ máy chủ WSUS!")
-            self.phuc_hoi_nut_cai_dat()
+            self.cap_nhat_trang_thai("❌ Lỗi: Không thể móc nối với lõi cài đặt của Microsoft!")
+            self.khoi_phuc_nut_cai_dat()
             return
 
-        app_chon = [t for t, v in self.cac_bien_ung_dung.items() if v.get()]
-        xml_code = f"""<Configuration>\n  <Add SourcePath="{thu_muc_goc}" OfficeClientEdition="{kien_truc_so}" Channel="Current" Version="{version_hien_tai}" AllowCdnFallback="True">\n    <Product ID="{ma_san_pham}">\n      <Language ID="{ngon_ngu}" />\n"""
-        for t, m in tu_dien_ung_dung.items():
-            if t not in app_chon:
-                xml_code += f'      <ExcludeApp ID="{m}" />\n'
-        xml_code += """    </Product>\n  </Add>\n  <Updates Enabled="TRUE" />\n  <Display Level="Full" AcceptEULA="TRUE" />\n</Configuration>"""
-        file_xml = os.path.join(thu_muc_goc, "C2R_Config.xml")
-        with open(file_xml, "w", encoding="utf-8") as f:
-            f.write(xml_code)
+        danh_sach_chon = [ten for ten, bien in self.tu_dien_tich_chon.items() if bien.get()]
+        ma_lenh_xml = f"""<Configuration>\n  <Add SourcePath="{thu_muc_goc}" OfficeClientEdition="{nhi_phan_so}" Channel="Current" Version="{phien_ban_moi_nhat}" AllowCdnFallback="True">\n    <Product ID="{ma_san_pham}">\n      <Language ID="{ma_ngon_ngu}" />\n"""
+        for ten_ung_dung, id_ung_dung in TUDIEN_UNGDUNG.items():
+            if ten_ung_dung not in danh_sach_chon:
+                ma_lenh_xml += f'      <ExcludeApp ID="{id_ung_dung}" />\n'
+        ma_lenh_xml += """    </Product>\n  </Add>\n  <Updates Enabled="TRUE" />\n  <Display Level="Full" AcceptEULA="TRUE" />\n</Configuration>"""
         
-        tien_trinh = subprocess.Popen([duong_dan_setup, "/configure", file_xml], cwd=thu_muc_goc)
-        tien_trinh.wait()
+        file_cau_hinh_xml = os.path.join(thu_muc_goc, "C2R_Config.xml")
+        with open(file_cau_hinh_xml, "w", encoding="utf-8") as f:
+            f.write(ma_lenh_xml)
         
-        self.cho_tien_trinh_ket_thuc("setup.exe")
-        ma_thoat = tien_trinh.returncode
+        tien_trinh_cai_dat = subprocess.Popen([duong_dan_setup, "/configure", file_cau_hinh_xml], cwd=thu_muc_goc)
+        tien_trinh_cai_dat.wait()
         
-        if os.path.exists(file_xml):
-            os.remove(file_xml)
+        TienIchHeThong.doi_tien_trinh_ket_thuc("setup.exe", self.cap_nhat_trang_thai)
+        ma_tra_ve = tien_trinh_cai_dat.returncode
+        
+        if os.path.exists(file_cau_hinh_xml):
+            os.remove(file_cau_hinh_xml)
         if os.path.exists(duong_dan_setup):
             os.remove(duong_dan_setup)
             
-        self.cua_so.after(0, lambda: self.thanh_tien_do.stop())
+        self.after(0, lambda: self.thanh_tien_do.stop())
         
-        if ma_thoat == 0:
+        if ma_tra_ve == 0:
             if messagebox.askyesno("Dọn dẹp", "Cài đặt thành công!\nBạn có muốn XÓA thư mục 2.9GB tải về để tiết kiệm ổ cứng không?"):
                 try:
                     shutil.rmtree(os.path.join(thu_muc_goc, "Office"))
                 except:
                     pass
             
-            if self.bien_tao_shortcut.get():
-                self.tao_loi_tat_desktop()
-            if self.bien_tu_dong_ohook.get():
-                self.cap_nhat_trang_thai("⏳ Đang tự động Kích hoạt Ohook...")
-                self.chay_gist_ngam("/Ohook")
-            self.cap_nhat_trang_thai("✅ HOÀN TẤT: Đã cài đặt C2R siêu tốc độ thành công!")
-            messagebox.showinfo("Thành công", "Mọi quy trình đã hoàn tất hoàn hảo. Chúc bác một ngày làm việc vui vẻ!")
+            if self.bien_tu_dong_shortcut.get():
+                TienIchHeThong.tao_loi_tat_man_hinh(self.cap_nhat_trang_thai)
+            if self.bien_tu_dong_crack.get():
+                self.cap_nhat_trang_thai("⏳ VietToolbox đang bơm thuốc Ohook...")
+                TienIchHeThong.kich_hoat_ohook_ngam("/Ohook")
+            self.cap_nhat_trang_thai("✅ HOÀN TẤT: Cấu trúc C2R đã được tích hợp vững chắc!")
+            messagebox.showinfo("Hoàn Tất Chuyên Nghiệp", "Mọi quy trình đã hoàn tất theo chuẩn hệ sinh thái VietToolbox. Chúc bác một ngày làm việc năng suất!")
         else:
-            self.cap_nhat_trang_thai(f"❌ Lỗi: Cài đặt thất bại (Mã: {ma_thoat})")
-            messagebox.showerror("Lỗi Cài Đặt", f"Trình cài đặt Microsoft Office đã dừng đột ngột!\nMã lỗi: {ma_thoat}\nLý do thường gặp: Ổ C: bị đầy, hoặc chưa gỡ sạch bản Office cũ.")
-        self.phuc_hoi_nut_cai_dat()
+            self.cap_nhat_trang_thai(f"❌ Lỗi: Cài đặt thất bại (Mã thoát: {ma_tra_ve})")
+            messagebox.showerror("Báo Cáo Lỗi", f"Tiến trình bị gián đoạn đột ngột!\nMã lỗi: {ma_tra_ve}\nNguyên nhân: Ổ C: có thể bị đầy, hoặc bác chưa dùng tính năng Gỡ & Clean Office cũ.")
+        self.khoi_phuc_nut_cai_dat()
 
-    def chuan_bi_cong_cu_odt_cho_go(self, thu_muc_dich=None):
-        if thu_muc_dich:
-            duong_dan_file_setup = os.path.join(thu_muc_dich, "setup.exe")
-        else:
-            duong_dan_file_setup = os.path.join(os.environ['TEMP'], "setup.exe")
-            
-        if os.path.exists(duong_dan_file_setup) and os.path.getsize(duong_dan_file_setup) > 2000000:
-            self.cap_nhat_trang_thai("♻️ Đã tìm thấy file Setup.exe trên máy, đang tái sử dụng...")
-            return duong_dan_file_setup
+    def hanh_dong_go_office(self):
+        if messagebox.askyesno("Cảnh Báo Chuyên Sâu", "Hành động này sẽ:\n1. Gỡ hoàn toàn bộ Office đang có.\n2. VietToolbox sẽ Deep Clean xóa sạch Registry và File tàn dư.\n\nBác có chắc chắn muốn làm phẳng hệ thống không?"): 
+            threading.Thread(target=self.luong_xu_ly_go_office, daemon=True).start()
 
-        self.cap_nhat_trang_thai("⏳ Đang tải lõi Setup.exe gốc từ máy chủ Microsoft WSUS...")
-        link_wsus = "https://officecdn.microsoft.com/pr/wsus/setup.exe"
+    def luong_xu_ly_go_office(self):
+        self.after(0, lambda: self.thanh_tien_do.config(mode='indeterminate', value=0))
+        self.after(0, lambda: self.thanh_tien_do.start(15))
         try:
-            req = urllib.request.Request(link_wsus, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=30) as phan_hoi, open(duong_dan_file_setup, 'wb') as f:
-                f.write(phan_hoi.read())
-            if os.path.exists(duong_dan_file_setup) and os.path.getsize(duong_dan_file_setup) > 1000000:
-                return duong_dan_file_setup
-            return None
-        except:
-            return None
-
-    def don_dep_rac_registry(self):
-        self.cap_nhat_trang_thai("🧹 Đang kích hoạt Deep Clean: Diệt tiến trình ngầm và dọn Registry...")
-        os.system('taskkill /F /IM ClickToRunSvc.exe >nul 2>&1')
-        os.system('taskkill /F /IM OfficeClickToRun.exe >nul 2>&1')
-        os.system('taskkill /F /IM WINWORD.EXE >nul 2>&1')
-        os.system('taskkill /F /IM EXCEL.EXE >nul 2>&1')
-        
-        cac_khoa = [
-            r"HKCU\Software\Microsoft\Office",
-            r"HKLM\SOFTWARE\Microsoft\Office",
-            r"HKLM\SOFTWARE\WOW6432Node\Microsoft\Office",
-            r"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\O365ProPlusRetail - vi-vn"
-        ]
-        for khoa in cac_khoa:
-            os.system(f'reg delete "{khoa}" /f >nul 2>&1')
+            self.cap_nhat_trang_thai("⏳ VietToolbox đang dựng kịch bản nhổ rễ Office...")
+            lenh_go_bo = """<Configuration>\n  <Remove All="True" />\n  <Display Level="Full" AcceptEULA="TRUE" />\n</Configuration>"""
+            file_cau_hinh_go = os.path.join(os.environ['TEMP'], "VTCauHinhGo.xml")
+            with open(file_cau_hinh_go, "w", encoding="utf-8") as f:
+                f.write(lenh_go_bo)
             
-        self.cap_nhat_trang_thai("🧹 Đang Deep Clean: Quét sạch file rác trong phân vùng ổ C:...")
-        rac = [
-            os.path.join(os.environ.get('ProgramFiles', 'C:\\Program Files'), "Microsoft Office"),
-            os.path.join(os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)'), "Microsoft Office"),
-            os.path.join(os.environ.get('ProgramData', 'C:\\ProgramData'), "Microsoft\\Office")
-        ]
-        for tm in rac:
-            if os.path.exists(tm):
-                try:
-                    shutil.rmtree(tm, ignore_errors=True)
-                except:
-                    pass
-
-    def khoi_dong_go_office(self):
-        if messagebox.askyesno("Cảnh Báo Gỡ Cài Đặt", "Hành động này sẽ:\n1. Gỡ hoàn toàn toàn bộ Microsoft Office khỏi máy.\n2. Deep Clean xóa sạch Registry và File thiết lập cũ.\n\nBạn có chắc chắn muốn quét sạch không?"): 
-            threading.Thread(target=self.tien_trinh_go_office, daemon=True).start()
-
-    def tien_trinh_go_office(self):
-        self.cua_so.after(0, lambda: self.thanh_tien_do.config(mode='indeterminate', value=0))
-        self.cua_so.after(0, lambda: self.thanh_tien_do.start(15))
-        try:
-            self.cap_nhat_trang_thai("⏳ Đang thiết lập lệnh ép buộc gỡ cài đặt toàn diện...")
-            noi_dung_xml = """<Configuration>\n  <Remove All="True" />\n  <Display Level="Full" AcceptEULA="TRUE" />\n</Configuration>"""
-            duong_dan_xml = os.path.join(os.environ['TEMP'], "CauHinhGo.xml")
-            with open(duong_dan_xml, "w", encoding="utf-8") as f:
-                f.write(noi_dung_xml)
-            
-            duong_dan_setup = self.chuan_bi_cong_cu_odt_cho_go()
+            duong_dan_setup = self.chuan_bi_setup_exe()
             if duong_dan_setup:
-                self.cap_nhat_trang_thai("🚀 Đang chạy bộ gỡ chuẩn C2R gốc. Vui lòng chờ bảng cam tắt...")
-                tien_trinh_go = subprocess.Popen([duong_dan_setup, "/configure", duong_dan_xml])
+                self.cap_nhat_trang_thai("🚀 Đang khởi động máy xúc Microsoft C2R. Vui lòng chờ bảng cam tắt...")
+                tien_trinh_go = subprocess.Popen([duong_dan_setup, "/configure", file_cau_hinh_go])
                 tien_trinh_go.wait()
                 
-                self.cho_tien_trinh_ket_thuc("setup.exe")
-                self.don_dep_rac_registry()
+                TienIchHeThong.doi_tien_trinh_ket_thuc("setup.exe", self.cap_nhat_trang_thai)
+                TienIchHeThong.don_dep_registry_chuyen_sau(self.cap_nhat_trang_thai)
                 
-                self.cap_nhat_trang_thai("✅ Hoàn tất Gỡ bỏ và Dọn sạch hoàn toàn Office!")
-                messagebox.showinfo("Thành công", "Tiến trình Uninstall & Deep Clean đã hoàn tất.\nMáy tính đã sạch bóng Microsoft Office như lúc mới mua!")
+                self.cap_nhat_trang_thai("✅ Đã dọn dẹp hệ thống sạch sẽ không tì vết!")
+                messagebox.showinfo("Thành công", "Tiến trình Uninstall & Deep Clean của VietToolbox đã xong.\nMáy tính đã được giải phóng hoàn toàn khỏi Office!")
             else:
-                self.cap_nhat_trang_thai("❌ Lỗi: Không chuẩn bị được công cụ để gỡ cài đặt.")
+                self.cap_nhat_trang_thai("❌ Lỗi: Không kéo được công cụ gỡ cài đặt từ mạng.")
         finally:
-            self.cua_so.after(0, lambda: self.thanh_tien_do.stop())
+            self.after(0, lambda: self.thanh_tien_do.stop())
 
-    def khoi_dong_go_kms(self):
-        if messagebox.askyesno("Xác nhận", "Xóa KMS ảo và Reset trạng thái bản quyền?"):
-            threading.Thread(target=self.tien_trinh_go_kms, daemon=True).start()
+    def hanh_dong_go_kms(self):
+        if messagebox.askyesno("Xác nhận Tẩy Rửa", "Tiến hành xóa KMS ảo và Reset trạng thái bản quyền?"):
+            threading.Thread(target=self.luong_xu_ly_go_kms, daemon=True).start()
 
-    def tien_trinh_go_kms(self):
-        self.cua_so.after(0, lambda: self.thanh_tien_do.start(15))
+    def luong_xu_ly_go_kms(self):
+        self.after(0, lambda: self.thanh_tien_do.start(15))
         try:
-            self.cap_nhat_trang_thai("⏳ Đang dọn dẹp hệ thống KMS...")
-            cac_thu_muc = [os.environ.get("ProgramFiles", "C:\\Program Files") + "\\Microsoft Office\\Office16", os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)") + "\\Microsoft Office\\Office16"]
-            file_ospp = next((os.path.join(tm, "ospp.vbs") for tm in cac_thu_muc if os.path.exists(os.path.join(tm, "ospp.vbs"))), None)
-            if file_ospp:
-                subprocess.run(["cscript", "//nologo", file_ospp, "/remhst"], creationflags=subprocess.CREATE_NO_WINDOW)
-                subprocess.run(["cscript", "//nologo", file_ospp, "/rearm"], creationflags=subprocess.CREATE_NO_WINDOW)
-                self.cap_nhat_trang_thai("✅ Đã dọn dẹp sạch bản quyền KMS cũ!")
-                messagebox.showinfo("Thành công", "Đã xóa KMS ảo và Reset trạng thái bản quyền.\nVui lòng khởi động lại máy tính.")
+            self.cap_nhat_trang_thai("⏳ Đang cào sạch hệ thống giả lập KMS...")
+            danh_sach_thu_muc = [os.environ.get("ProgramFiles", "C:\\Program Files") + "\\Microsoft Office\\Office16", os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)") + "\\Microsoft Office\\Office16"]
+            file_vbs_kms = next((os.path.join(tm, "ospp.vbs") for tm in danh_sach_thu_muc if os.path.exists(os.path.join(tm, "ospp.vbs"))), None)
+            if file_vbs_kms:
+                subprocess.run(["cscript", "//nologo", file_vbs_kms, "/remhst"], creationflags=subprocess.CREATE_NO_WINDOW)
+                subprocess.run(["cscript", "//nologo", file_vbs_kms, "/rearm"], creationflags=subprocess.CREATE_NO_WINDOW)
+                self.cap_nhat_trang_thai("✅ Đã trục xuất hoàn toàn mầm mống KMS cũ!")
+                messagebox.showinfo("Thành công", "Đã xóa KMS ảo và Reset chứng chỉ bản quyền.\nĐề nghị bác khởi động lại máy tính.")
             else:
-                self.cap_nhat_trang_thai("⚠️ Không tìm thấy file hệ thống Office.")
+                self.cap_nhat_trang_thai("⚠️ Không dò thấy cấu trúc tệp tin Office để xử lý.")
         finally:
-            self.cua_so.after(0, lambda: self.thanh_tien_do.stop())
+            self.after(0, lambda: self.thanh_tien_do.stop())
 
-    def chay_gist_ngam(self, tham_so):
-        url = f"https://gist.githubusercontent.com/tuantran19912512/81329d670436ea8492b73bd5889ad444/raw/Ohook.cmd?t={time.time()}"
-        tmp = os.path.join(os.environ['TEMP'], "O.cmd")
+    def luong_xu_ly_thuoc_chung(self, tham_so_lenh, tin_nhan_thanh_cong):
+        self.after(0, lambda: self.thanh_tien_do.start(15))
         try:
-            with open(tmp, 'w', encoding='utf-8') as f:
-                f.write(urllib.request.urlopen(url).read().decode('utf-8').replace("\n", "\r\n"))
-            subprocess.run(["cmd.exe", "/c", tmp, tham_so], creationflags=subprocess.CREATE_NO_WINDOW)
-        except:
-            pass
+            TienIchHeThong.kich_hoat_ohook_ngam(tham_so_lenh)
+            self.cap_nhat_trang_thai(tin_nhan_thanh_cong)
+            messagebox.showinfo("Phản hồi hệ thống", tin_nhan_thanh_cong[2:])
         finally:
-            if os.path.exists(tmp):
-                try:
-                    os.remove(tmp)
-                except:
-                    pass
+            self.after(0, lambda: self.thanh_tien_do.stop())
 
-    def tien_trinh_gist_giao_dien(self, tham_so, loi_nhan):
-        self.cua_so.after(0, lambda: self.thanh_tien_do.start(15))
-        try:
-            self.chay_gist_ngam(tham_so)
-            self.cap_nhat_trang_thai(loi_nhan)
-            messagebox.showinfo("Thành công", loi_nhan[2:])
-        finally:
-            self.cua_so.after(0, lambda: self.thanh_tien_do.stop())
+    def hanh_dong_bom_thuoc(self):
+        self.cap_nhat_trang_thai("⏳ Đang ép xung Kích hoạt Ohook vĩnh viễn...")
+        threading.Thread(target=self.luong_xu_ly_thuoc_chung, args=("/Ohook", "✅ Đã bơm thuốc Ohook thành công vào cấu trúc Office!"), daemon=True).start()
 
-    def khoi_dong_thuoc(self):
-        self.cap_nhat_trang_thai("⏳ Đang Kích hoạt Ohook Silent...")
-        threading.Thread(target=self.tien_trinh_gist_giao_dien, args=("/Ohook", "✅ Đã KÍCH HOẠT thành công bản quyền Ohook!"), daemon=True).start()
-
-    def khoi_dong_go_ohook_xoa(self):
-        if not messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn gỡ bỏ hoàn toàn Crack Ohook không?"):
+    def hanh_dong_rut_thuoc_ohook(self):
+        if not messagebox.askyesno("Cảnh báo Gỡ Thuốc", "Xác nhận gỡ bỏ hoàn toàn Hook bản quyền Ohook?"):
             return
-        self.cap_nhat_trang_thai("⏳ Đang gỡ Ohook...")
-        threading.Thread(target=self.tien_trinh_gist_giao_dien, args=("/OhookUninstall", "✅ Đã GỠ BỎ Ohook và khôi phục file gốc thành công!"), daemon=True).start()
-
-    def cap_nhat_trang_thai(self, msg):
-        self.cua_so.after(0, lambda: self.nhan_trang_thai.config(text=msg))
+        self.cap_nhat_trang_thai("⏳ Đang thanh lọc Ohook khỏi hệ thống...")
+        threading.Thread(target=self.luong_xu_ly_thuoc_chung, args=("/OhookUninstall", "✅ Đã rút thuốc và khôi phục sự trong sạch cho Office!"), daemon=True).start()
 
 if __name__ == "__main__":
-    cua_so = tk.Tk()
-    app = UngDungCaiDatOffice(cua_so)
-    cua_so.mainloop()
+    phan_mem_viettoolbox = TrienKhaiOffice()
+    phan_mem_viettoolbox.mainloop()
