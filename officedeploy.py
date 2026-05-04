@@ -6,6 +6,8 @@ import threading
 import time
 import queue
 import socket
+import glob
+import shutil
 import tkinter as tk
 from tkinter import ttk, messagebox
 from tkinter import filedialog
@@ -141,7 +143,7 @@ class DongCoTaiDaLuong:
 class UngDungCaiDatOffice:
     def __init__(self, cua_so_chinh):
         self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - Max Speed (V7 Smart C2R)")
+        self.cua_so.title("Cài đặt Microsoft Office - Max Speed (V7.1 Smart C2R)")
         self.cua_so.geometry("640x720")
         self.cua_so.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
@@ -308,7 +310,6 @@ class UngDungCaiDatOffice:
         self.cua_so.after(0, lambda: self.nut_cai_dat.config(text="🚀 BẮT ĐẦU CÀI ĐẶT", bg="#0288D1", command=self.khoi_dong_cai_dat))
 
     def tien_trinh_cai_dat_thong_minh(self):
-        # 1. Thu thập thông tin cấu hình
         nam_pb = self.bien_phien_ban.get()
         ban_con = self.hop_chon_ban_con.get().replace(" & ", "").replace(" ", "")
         ma_san_pham = tu_dien_phien_ban.get(f"{nam_pb}_{ban_con}", "ProPlus2024Retail")
@@ -317,42 +318,56 @@ class UngDungCaiDatOffice:
         ngon_ngu = "vi-vn" if "Vietnamese" in self.hop_chon_ngon_ngu.get() else "en-us"
         thu_muc_goc = self.thu_muc_luu_file.get()
         
-        # 2. Quét máy chủ Microsoft tìm Build mới nhất
-        self.cap_nhat_trang_thai("🔍 Đang kết nối máy chủ CDN tìm mã phiên bản mới nhất...")
-        base_url = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+        # --- BẮT ĐẦU BẢN VÁ LỖI V7.1 ---
+        self.cap_nhat_trang_thai("🔍 Đang bung tệp Danh mục (.cab) để dò mã Phiên bản...")
+        base_url = "https://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+        version_hien_tai = None
         try:
-            req = urllib.request.Request(f"{base_url}/Office/Data/v{kien_truc_so}.xml", headers={'User-Agent': 'Mozilla/5.0'})
-            xml_data = urllib.request.urlopen(req, timeout=10).read().decode('utf-8')
-            match = re.search(r'Version="([^"]+)"', xml_data)
-            if not match: raise Exception("Không phân tích được Version")
-            version_hien_tai = match.group(1)
+            tm_cab = os.path.join(os.environ['TEMP'], "OfficeCabTemp")
+            if os.path.exists(tm_cab): shutil.rmtree(tm_cab)
+            os.makedirs(tm_cab, exist_ok=True)
+            
+            cab_file = os.path.join(tm_cab, f"v{kien_truc_so}.cab")
+            req = urllib.request.Request(f"{base_url}/Office/Data/v{kien_truc_so}.cab", headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=15) as res, open(cab_file, 'wb') as f:
+                f.write(res.read())
+                
+            # Đập hộp CAB bằng Expand.exe của Windows
+            subprocess.run(["expand.exe", cab_file, "-F:*.xml", tm_cab], creationflags=subprocess.CREATE_NO_WINDOW)
+            
+            # Đọc mã Build từ file XML vừa rớt ra
+            for f_xml in glob.glob(os.path.join(tm_cab, "*.xml")):
+                noi_dung = open(f_xml, 'r', encoding='utf-8', errors='ignore').read()
+                match = re.search(r'Version="(\d{2}\.\d+\.\d+\.\d+)"', noi_dung)
+                if match:
+                    version_hien_tai = match.group(1)
+                    break
+                    
+            if not version_hien_tai: raise Exception("Không tìm thấy Version XML")
         except Exception as e:
-            self.cap_nhat_trang_thai("❌ Không lấy được phiên bản từ Microsoft.")
+            self.cap_nhat_trang_thai("❌ Lỗi: Không thể phân tích Version từ Microsoft.")
             self.phuc_hoi_nut_cai_dat()
             return
+        # --- KẾT THÚC BẢN VÁ LỖI ---
 
-        # 3. Tạo cấu trúc thư mục C2R chuẩn của Office Tool Plus
         tm_data = os.path.join(thu_muc_goc, "Office", "Data")
         tm_version = os.path.join(tm_data, version_hien_tai)
         os.makedirs(tm_version, exist_ok=True)
 
-        # 4. Danh sách các file DAT Lõi (Khoảng 2.8GB) cần kéo bằng 16 luồng
         danh_sach_tai = [
             (f"{base_url}/Office/Data/v{kien_truc_so}.cab", os.path.join(tm_data, f"v{kien_truc_so}.cab"), "File danh mục (1/3)"),
             (f"{base_url}/Office/Data/{version_hien_tai}/stream.{kien_truc_chu}.x-none.dat", os.path.join(tm_version, f"stream.{kien_truc_chu}.x-none.dat"), "Lõi Office siêu nặng (2/3)"),
             (f"{base_url}/Office/Data/{version_hien_tai}/stream.{kien_truc_chu}.{ngon_ngu}.dat", os.path.join(tm_version, f"stream.{kien_truc_chu}.{ngon_ngu}.dat"), "Gói ngôn ngữ (3/3)")
         ]
 
-        # 5. Bắt đầu tải lần lượt 3 cục dữ liệu lớn
         for url_tai, duong_dan_luu, ten_goi in danh_sach_tai:
             if self.may_tai_hien_tai and self.may_tai_hien_tai.huy_tai: break
             
-            # Bỏ qua nếu file DAT đã tồn tại và đủ dung lượng (Tránh tải lại)
             req_check = urllib.request.Request(url_tai, method='HEAD', headers={'User-Agent': 'Mozilla/5.0'})
             try: dung_luong_that = int(urllib.request.urlopen(req_check, timeout=10).headers.get('Content-Length', 0))
             except: dung_luong_that = 0
             if os.path.exists(duong_dan_luu) and os.path.getsize(duong_dan_luu) == dung_luong_that:
-                continue # Kế thừa file đã tải
+                continue
 
             self.may_tai_hien_tai = DongCoTaiDaLuong(url_tai, duong_dan_luu, 16)
             if self.may_tai_hien_tai.lay_dung_luong():
@@ -383,7 +398,6 @@ class UngDungCaiDatOffice:
                     self.phuc_hoi_nut_cai_dat()
                     return
 
-        # 6. Tạo file cấu hình XML và Tải file Setup.exe
         self.cua_so.after(0, lambda: self.thanh_tien_do.config(mode='indeterminate', value=0))
         self.cua_so.after(0, lambda: self.thanh_tien_do.start(15))
         self.cap_nhat_trang_thai("🚀 Đang khởi động trình cài đặt nội bộ. Vui lòng đợi bảng cam tắt...")
@@ -403,14 +417,11 @@ class UngDungCaiDatOffice:
         file_xml = os.path.join(thu_muc_goc, "C2R_Config.xml")
         with open(file_xml, "w", encoding="utf-8") as f: f.write(xml_code)
         
-        # Gọi Setup. Nó sẽ thấy 2.8GB đã tải, và chỉ việc tải nốt ~50MB CAB lặt vặt
         subprocess.Popen([duong_dan_setup, "/configure", file_xml]).wait()
         
         if os.path.exists(file_xml): os.remove(file_xml)
         if messagebox.askyesno("Dọn dẹp", "Cài đặt thành công!\nBạn có muốn XÓA thư mục 2.9GB tải về để tiết kiệm ổ cứng không?"):
-            try:
-                import shutil
-                shutil.rmtree(os.path.join(thu_muc_goc, "Office"))
+            try: shutil.rmtree(os.path.join(thu_muc_goc, "Office"))
             except: pass
         
         if self.bien_tao_shortcut.get(): self.tao_loi_tat_desktop()
