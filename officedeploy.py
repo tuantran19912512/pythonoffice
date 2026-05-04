@@ -10,25 +10,15 @@ from tkinter import ttk, messagebox
 # TỪ ĐIỂN DỮ LIỆU CỦA MICROSOFT
 # ==============================================================================
 tu_dien_phien_ban = {
-    # Nhánh ProPlus
     "2016_ProPlus": "ProPlusRetail", "2019_ProPlus": "ProPlus2019Retail",
     "2021_ProPlus": "ProPlus2021Retail", "2024_ProPlus": "ProPlus2024Retail",
-    "365_ProPlus": "O365ProPlusRetail", 
-    
-    # Nhánh Standard
-    "2016_Standard": "StandardRetail", "2019_Standard": "Standard2019Retail", 
-    "2021_Standard": "Standard2021Retail", "2024_Standard": "Standard2024Retail", 
-    
-    # Nhánh Home & Business
-    "2016_HomeBusiness": "HomeBusinessRetail", "2019_HomeBusiness": "HomeBusiness2019Retail", 
-    "2021_HomeBusiness": "HomeBusiness2021Retail", "2024_HomeBusiness": "HomeBusiness2024Retail", 
-    
-    # Nhánh Home & Student
-    "2016_HomeStudent": "HomeStudentRetail", "2019_HomeStudent": "HomeStudent2019Retail", 
-    "2021_HomeStudent": "HomeStudent2021Retail", "2024_HomeStudent": "Home2024Retail", 
-    
-    # Nhánh riêng của Office 365
-    "365_Business": "O365BusinessRetail",
+    "365_ProPlus": "O365ProPlusRetail", "2016_Standard": "StandardRetail",
+    "2019_Standard": "Standard2019Retail", "2021_Standard": "Standard2021Retail",
+    "2024_Standard": "Standard2024Retail", "2016_HomeBusiness": "HomeBusinessRetail",
+    "2019_HomeBusiness": "HomeBusiness2019Retail", "2021_HomeBusiness": "HomeBusiness2021Retail",
+    "2024_HomeBusiness": "HomeBusiness2024Retail", "365_Business": "O365BusinessRetail",
+    "2016_HomeStudent": "HomeStudentRetail", "2019_HomeStudent": "HomeStudent2019Retail",
+    "2021_HomeStudent": "HomeStudent2021Retail", "2024_HomeStudent": "Home2024Retail",
     "365_HomePremium": "O365HomePremRetail"
 }
 
@@ -55,8 +45,8 @@ def tao_nut_bam_mau(khung_chua, chu_hien_thi, mau_nen, mau_chu="white", hanh_don
 class UngDungCaiDatOffice:
     def __init__(self, cua_so_chinh):
         self.cua_so = cua_so_chinh
-        self.cua_so.title("Cài đặt Microsoft Office - Trực tiếp từ Server CDN (V4 Dynamic)")
-        self.cua_so.geometry("630x750")
+        self.cua_so.title("Cài đặt Microsoft Office - Trực tiếp từ Server CDN (V5 Ultimate)")
+        self.cua_so.geometry("640x780")
         self.cua_so.resizable(False, False)
 
         self.phong_chu_thuong = ("Segoe UI", 9)
@@ -71,7 +61,7 @@ class UngDungCaiDatOffice:
         
         tk.Label(khung_tieu_de, text="🏢 CÀI ĐẶT MICROSOFT OFFICE RETAIL", font=("Segoe UI", 14, "bold"), bg="#E64A19", fg="white").place(x=15, y=8)
         tk.Label(khung_tieu_de, text="Tải trực tiếp Max Speed từ Server Microsoft (CDN)", font=("Segoe UI", 9), bg="#E64A19", fg="white").place(x=40, y=35)
-        tk.Label(khung_tieu_de, text="🌐 ONLINE", font=("Segoe UI", 10, "bold"), bg="#E64A19", fg="white").place(x=530, y=18)
+        tk.Label(khung_tieu_de, text="🌐 ONLINE", font=("Segoe UI", 10, "bold"), bg="#E64A19", fg="white").place(x=540, y=18)
 
         # --- KHUNG CHỨA TAB ---
         hop_tab = ttk.Notebook(self.cua_so)
@@ -107,9 +97,7 @@ class UngDungCaiDatOffice:
         khung_rb_phien_ban = ttk.Frame(khung_phien_ban)
         khung_rb_phien_ban.pack(fill="x", padx=10, pady=5)
         
-        # Bắt sự kiện khi người dùng click đổi phiên bản (Radio button)
         self.bien_phien_ban.trace_add("write", self.cap_nhat_hop_chon_ban_con)
-        
         for vi_tri, ten_ban in enumerate(danh_sach_ban):
             ttk.Radiobutton(khung_rb_phien_ban, text=ten_ban, variable=self.bien_phien_ban, value=ten_ban.split()[-1]).grid(row=0, column=vi_tri, padx=6)
             
@@ -117,7 +105,6 @@ class UngDungCaiDatOffice:
         khung_cb_phien_ban.pack(fill="x", padx=10, pady=5)
         ttk.Label(khung_cb_phien_ban, text="Phiên bản con:").pack(side="left", padx=(0, 10))
         self.hop_chon_ban_con = ttk.Combobox(khung_cb_phien_ban, state="readonly", width=35)
-        # Nạp dữ liệu lần đầu
         self.cap_nhat_hop_chon_ban_con()
         self.hop_chon_ban_con.pack(side="left")
 
@@ -146,17 +133,25 @@ class UngDungCaiDatOffice:
             ("PowerPoint", 1, 0), ("Outlook", 1, 1), ("Publisher", 1, 2),
             ("OneNote", 2, 0), ("Skype", 2, 1), ("Teams", 2, 2)
         ]
-        
         self.cac_bien_ung_dung = {}
         for ten_app, hang, cot in danh_sach_app:
             bien_tich = tk.BooleanVar(value=True)
             self.cac_bien_ung_dung[ten_app] = bien_tich
             ttk.Checkbutton(khung_ung_dung, text=f" {ten_app}", variable=bien_tich).grid(row=hang, column=cot, sticky="w", padx=25, pady=6)
 
-        # 4. NÚT BẤM
+        # 4. KHUNG TÙY CHỌN BỔ SUNG (MỚI THÊM)
+        khung_tuy_chon = ttk.LabelFrame(tab, text=" 🔧 Tùy chọn tự động sau cài đặt ")
+        khung_tuy_chon.pack(fill="x", padx=10, pady=8)
+        
+        self.bien_tu_dong_ohook = tk.BooleanVar(value=True)
+        ttk.Checkbutton(khung_tuy_chon, text="Tự động Kích hoạt Ohook", variable=self.bien_tu_dong_ohook).pack(side="left", padx=25, pady=8)
+        
+        self.bien_tao_shortcut = tk.BooleanVar(value=True)
+        ttk.Checkbutton(khung_tuy_chon, text="Đưa lối tắt (Word, Excel) ra Desktop", variable=self.bien_tao_shortcut).pack(side="left", padx=25, pady=8)
+
+        # 5. NÚT BẤM
         khung_nut_bam = ttk.Frame(tab)
         khung_nut_bam.pack(fill="x", padx=10, pady=10)
-        
         tao_nut_bam_mau(khung_nut_bam, "💊 KÍCH HOẠT OHOOK", "#F57C00", hanh_dong=self.khoi_dong_thuoc_ohook).pack(side="left", padx=5)
         tao_nut_bam_mau(khung_nut_bam, "⚙ BẮT ĐẦU CÀI ĐẶT", "#0288D1", hanh_dong=self.khoi_dong_luong_cai_dat).pack(side="right", padx=5)
 
@@ -183,13 +178,11 @@ class UngDungCaiDatOffice:
         ttk.Label(khung_go_ohook, text="Gỡ bỏ hoàn toàn Hook kích hoạt bản quyền vĩnh viễn (Ohook)\nvà trả lại các file hệ thống nguyên bản cho ứng dụng Office.", justify="left").pack(anchor="w", padx=15, pady=5)
         khung_nut_ohook = ttk.Frame(khung_go_ohook)
         khung_nut_ohook.pack(fill="x", padx=10, pady=5)
-        tao_nut_bam_mau(khung_nut_ohook, "🛡️ GỠ OHOOK TRỰC ĐỂ", "#7B1FA2", hanh_dong=self.khoi_dong_go_ohook).pack(side="right", padx=5, pady=5)
+        tao_nut_bam_mau(khung_nut_ohook, "🛡️ GỠ OHOOK TRIỆT ĐỂ", "#7B1FA2", hanh_dong=self.khoi_dong_go_ohook).pack(side="right", padx=5, pady=5)
 
     # ==========================================================================
     # CÁC HÀM XỬ LÝ LÕI BACKEND
     # ==========================================================================
-    
-    # Hàm thông minh: Tự thay đổi danh sách menu theo bản Office được chọn
     def cap_nhat_hop_chon_ban_con(self, *args):
         ban_dang_chon = self.bien_phien_ban.get()
         if ban_dang_chon == "365":
@@ -214,6 +207,27 @@ class UngDungCaiDatOffice:
                 return None
         return duong_dan_file_setup
 
+    def tao_loi_tat_desktop(self):
+        self.cap_nhat_trang_thai("⏳ Đang tìm và đưa Shortcut ra màn hình Desktop...")
+        desktop = os.path.join(os.environ['USERPROFILE'], 'Desktop')
+        cac_thu_muc = [
+            os.environ.get('ProgramFiles', 'C:\\Program Files') + "\\Microsoft Office\\root\\Office16",
+            os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)') + "\\Microsoft Office\\root\\Office16"
+        ]
+        cac_ung_dung = {"WINWORD.EXE": "Word", "EXCEL.EXE": "Excel", "POWERPNT.EXE": "PowerPoint", "MSACCESS.EXE": "Access", "OUTLOOK.EXE": "Outlook"}
+        
+        for thu_muc in cac_thu_muc:
+            if os.path.exists(thu_muc):
+                for file_exe, ten_app in cac_ung_dung.items():
+                    muc_tieu = os.path.join(thu_muc, file_exe)
+                    if os.path.exists(muc_tieu):
+                        duong_dan_lnk = os.path.join(desktop, f"{ten_app}.lnk")
+                        ma_vbs = f'Set ws = CreateObject("WScript.Shell")\nSet link = ws.CreateShortcut("{duong_dan_lnk}")\nlink.TargetPath = "{muc_tieu}"\nlink.Save'
+                        file_vbs = os.path.join(os.environ['TEMP'], 'tao_shortcut.vbs')
+                        with open(file_vbs, 'w', encoding='utf-8') as f: f.write(ma_vbs)
+                        subprocess.run(['cscript', '//nologo', file_vbs], creationflags=subprocess.CREATE_NO_WINDOW)
+                break
+
     # ---------- LOGIC CÀI ĐẶT ----------
     def tao_file_xml_cai_dat(self, phien_ban_tong_hop, kien_truc, ngon_ngu, danh_sach_app_chon):
         ma_san_pham = tu_dien_phien_ban.get(phien_ban_tong_hop, "ProPlus2024Retail")
@@ -234,7 +248,6 @@ class UngDungCaiDatOffice:
 
     def tien_trinh_cai_dat_ngam(self):
         nam_phien_ban = self.bien_phien_ban.get()
-        # Biến "Home & Business" thành "HomeBusiness", "Home Premium" thành "HomePremium" để khớp chuẩn từ điển
         ban_con_dinh_dang = self.hop_chon_ban_con.get().replace(" & ", "").replace(" ", "")
         phien_ban_tong_hop = f"{nam_phien_ban}_{ban_con_dinh_dang}"
         
@@ -248,11 +261,25 @@ class UngDungCaiDatOffice:
         duong_dan_setup = self.chuan_bi_cong_cu_odt()
         
         if duong_dan_setup and os.path.exists(duong_dan_setup):
-            self.cap_nhat_trang_thai("🚀 Đang chạy trình cài đặt Microsoft...")
+            self.cap_nhat_trang_thai("🚀 Đang chạy trình cài đặt. Vui lòng đợi đến khi bảng màu cam tắt hẳn...")
             try:
-                subprocess.Popen([duong_dan_setup, "/configure", duong_dan_xml])
+                # Dùng .wait() để tạm dừng tiến trình ngầm cho đến khi cài đặt Office hoàn tất
+                tien_trinh_cai_dat = subprocess.Popen([duong_dan_setup, "/configure", duong_dan_xml])
+                tien_trinh_cai_dat.wait()
+                
+                # Sau khi cài xong, kiểm tra các tùy chọn bổ sung
+                if self.bien_tao_shortcut.get():
+                    self.tao_loi_tat_desktop()
+                    
+                if self.bien_tu_dong_ohook.get():
+                    self.cap_nhat_trang_thai("⏳ Đang tự động tiến hành kích hoạt bản quyền Ohook...")
+                    self.tai_va_chay_gist("/Ohook", "✅ Đã KÍCH HOẠT Ohook thành công!", hien_thong_bao_rieng=False)
+                
+                self.cap_nhat_trang_thai("✅ HOÀN TẤT: Cài đặt và thiết lập Office thành công!")
+                messagebox.showinfo("Hoàn tất", "Đã hoàn tất quá trình cài đặt Office và các tùy chọn bổ sung thành công.")
+
             except Exception as e:
-                self.cap_nhat_trang_thai("❌ Đã xảy ra lỗi.")
+                self.cap_nhat_trang_thai("❌ Đã xảy ra lỗi trong lúc cài đặt.")
         else:
             self.cap_nhat_trang_thai("❌ Lỗi: Thiếu công cụ setup.exe!")
 
@@ -295,7 +322,7 @@ class UngDungCaiDatOffice:
             self.cap_nhat_trang_thai("⚠️ Không tìm thấy file hệ thống Office. Có thể Office đã bị gỡ.")
 
     # ---------- LOGIC XỬ LÝ OHOOK (GIST) ----------
-    def tai_va_chay_gist(self, tham_so, loi_nhan_thanh_cong):
+    def tai_va_chay_gist(self, tham_so, loi_nhan_thanh_cong, hien_thong_bao_rieng=True):
         url_gist = f"https://gist.githubusercontent.com/tuantran19912512/81329d670436ea8492b73bd5889ad444/raw/Ohook.cmd?t={time.time()}"
         file_tam = os.path.join(os.environ['TEMP'], "Ohook_Script.cmd")
         try:
@@ -307,7 +334,8 @@ class UngDungCaiDatOffice:
             tien_trinh.wait()
             
             self.cap_nhat_trang_thai(loi_nhan_thanh_cong)
-            messagebox.showinfo("Thành công", loi_nhan_thanh_cong[2:])
+            if hien_thong_bao_rieng:
+                messagebox.showinfo("Thành công", loi_nhan_thanh_cong[2:])
         except Exception as e:
             self.cap_nhat_trang_thai("❌ Lỗi kết nối mạng hoặc lỗi thực thi Gist.")
         finally:
