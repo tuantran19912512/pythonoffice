@@ -67,22 +67,19 @@ class DongCoTaiXuong:
                 break
                 
             file_danh_dau = f"{self.duong_dan_luu}.done{chi_so}"
-            
-            # Nếu cục này đã tải xong từ lần trước thì bỏ qua
             if os.path.exists(file_danh_dau):
                 hang_doi_viec.task_done()
                 continue
 
             thanh_cong = False
-            for _ in range(5): # Cho phép thử lại 5 lần nếu rớt mạng
+            for _ in range(5): 
                 if self.trang_thai_huy: break
                 luong_da_tai_cuc_nay = 0
                 try:
                     yeu_cau = urllib.request.Request(self.duong_dan_mang, headers={'Range': f'bytes={diem_bat_dau}-{diem_ket_thuc}', **self.tieu_de_mang})
                     with urllib.request.urlopen(yeu_cau, timeout=10) as phan_hoi:
-                        # Mở file chính ở chế độ Đọc/Ghi nhị phân (không ghi đè)
                         with open(self.duong_dan_luu, 'r+b') as file_dich:
-                            file_dich.seek(diem_bat_dau) # Trỏ thẳng vào tọa độ của luồng
+                            file_dich.seek(diem_bat_dau)
                             while True:
                                 if self.trang_thai_huy: break
                                 khoi_du_lieu = phan_hoi.read(262144) 
@@ -92,7 +89,6 @@ class DongCoTaiXuong:
                                 with self.khoa_luong:
                                     self.dung_luong_da_tai += len(khoi_du_lieu)
                     
-                    # Xác minh tải trọn vẹn cục
                     if luong_da_tai_cuc_nay == (diem_ket_thuc - diem_bat_dau + 1):
                         with open(file_danh_dau, 'w') as f: f.write('OK')
                         thanh_cong = True
@@ -108,7 +104,6 @@ class DongCoTaiXuong:
             hang_doi_viec.task_done()
 
     def khoi_chay_dong_co(self):
-        # Dọn rác phân mảnh của bản V10.1 cũ nếu còn sót lại
         for rac in glob.glob(f"{self.duong_dan_luu}.phan*"):
             try: os.remove(rac)
             except: pass
@@ -119,7 +114,6 @@ class DongCoTaiXuong:
         if self.tong_dung_luong % kich_thuoc_cuc != 0:
             so_luong_cuc += 1
 
-        # KỸ THUẬT PRE-ALLOCATE: Tạo ngay 1 file ảo dung lượng thật để giữ chỗ
         if not os.path.exists(self.duong_dan_luu) or os.path.getsize(self.duong_dan_luu) != self.tong_dung_luong:
             with open(self.duong_dan_luu, "wb") as f:
                 f.truncate(self.tong_dung_luong)
@@ -128,7 +122,6 @@ class DongCoTaiXuong:
 
         self.dung_luong_da_tai = 0
         
-        # CHIA CỤC VÀ ĐO TIẾN ĐỘ (Hỗ trợ Resume mượt mà)
         for i in range(so_luong_cuc):
             diem_bat_dau = i * kich_thuoc_cuc
             diem_ket_thuc = min(diem_bat_dau + kich_thuoc_cuc - 1, self.tong_dung_luong - 1)
@@ -138,7 +131,6 @@ class DongCoTaiXuong:
             else:
                 hang_doi_viec.put((diem_bat_dau, diem_ket_thuc, i))
 
-        # CHẠY BƠM ĐA LUỒNG MAX SPEED
         danh_sach_luong = []
         for _ in range(self.so_luong_luong):
             luong_moi = threading.Thread(target=self.luong_thuc_thi_tai, args=(hang_doi_viec,))
@@ -151,7 +143,6 @@ class DongCoTaiXuong:
         if self.trang_thai_huy or self.trang_thai_loi:
             return False
 
-        # HOÀN TẤT TỨC THÌ, CHỈ CẦN XÓA FILE ĐÁNH DẤU
         self.don_dep_file_rac(so_luong_cuc)
         return True
 
@@ -247,8 +238,8 @@ class TienIchHeThong:
 class TrienKhaiOffice(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("VietToolbox - Triển khai Microsoft Office (V10.4 Ultimate IDM Core)")
-        self.geometry("640x700")
+        self.title("VietToolbox - Triển khai Microsoft Office (V10.5 Auto Optimize)")
+        self.geometry("640x720")
         self.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
         self.thu_muc_lam_viec = tk.StringVar(value=os.getcwd())
@@ -272,11 +263,15 @@ class TrienKhaiOffice(tk.Tk):
 
         tab_cai_dat = ttk.Frame(hop_dieu_huong)
         tab_go_cai_dat = ttk.Frame(hop_dieu_huong)
-        hop_dieu_huong.add(tab_cai_dat, text="  ⚙️ Triển Khai & Kích Hoạt  ")
-        hop_dieu_huong.add(tab_go_cai_dat, text="  🗑️ Gỡ Bỏ & Dọn Dẹp Rác  ")
+        tab_toi_uu = ttk.Frame(hop_dieu_huong) # TÍNH NĂNG MỚI: Tab Tối Ưu
+        
+        hop_dieu_huong.add(tab_cai_dat, text="  ⚙️ Triển Khai  ")
+        hop_dieu_huong.add(tab_go_cai_dat, text="  🗑️ Gỡ Cài Đặt  ")
+        hop_dieu_huong.add(tab_toi_uu, text="  🚀 Tối Ưu Hóa & Fix Lỗi  ")
 
         self.thiet_ke_tab_cai_dat(tab_cai_dat)
         self.thiet_ke_tab_go_cai_dat(tab_go_cai_dat)
+        self.thiet_ke_tab_toi_uu(tab_toi_uu)
 
         khung_trang_thai = tk.Frame(self, bg="#E3F2FD")
         khung_trang_thai.pack(fill="x", padx=12, pady=(0, 12))
@@ -375,6 +370,35 @@ class TrienKhaiOffice(tk.Tk):
         khung_nut_cuu_ho.pack(fill="x", padx=10, pady=5)
         self.tao_nut_bam(khung_nut_cuu_ho, "🆘 XÓA ÉP BUỘC C2R", "#E65100", hanh_dong=self.hanh_dong_cuu_ho_zombie).pack(side="right", padx=5, pady=2)
 
+    # ==========================================================================
+    # THIẾT KẾ TAB TỐI ƯU HÓA (TÍNH NĂNG MỚI THEO YÊU CẦU)
+    # ==========================================================================
+    def thiet_ke_tab_toi_uu(self, tab):
+        khung_nghi_dinh = ttk.LabelFrame(tab, text=" 📜 Cấu hình chuẩn nhà nước (Nghị định 30) ")
+        khung_nghi_dinh.pack(fill="x", padx=10, pady=7)
+        ttk.Label(khung_nghi_dinh, text="Tự động can thiệp vào Normal.dotm để cài đặt mặc định cho Word:\n- Font: Times New Roman, Size 14.\n- Căn lề: Trên 2cm, Dưới 2cm, Trái 3cm, Phải 2cm.", justify="left").pack(anchor="w", padx=15, pady=5)
+        self.bien_nghi_dinh = tk.BooleanVar(value=True)
+        ttk.Checkbutton(khung_nghi_dinh, text="Bật cấu hình chuẩn Nghị định 30/2020", variable=self.bien_nghi_dinh).pack(anchor="w", padx=25, pady=(0,5))
+
+        khung_fix_loi = ttk.LabelFrame(tab, text=" 🔧 Fix lỗi & Tăng tốc độ mở file ")
+        khung_fix_loi.pack(fill="x", padx=10, pady=7)
+        
+        self.bien_tat_welcome = tk.BooleanVar(value=True)
+        ttk.Checkbutton(khung_fix_loi, text="Tắt màn hình Welcome (Vào thẳng trang trắng khi mở Word/Excel)", variable=self.bien_tat_welcome).pack(anchor="w", padx=25, pady=4)
+        
+        self.bien_tat_protect = tk.BooleanVar(value=True)
+        ttk.Checkbutton(khung_fix_loi, text="Tắt Protected View (Mở file Zalo/Internet KHÔNG bị thanh vàng báo lỗi)", variable=self.bien_tat_protect).pack(anchor="w", padx=25, pady=4)
+        
+        self.bien_tat_hw_accel = tk.BooleanVar(value=True)
+        ttk.Checkbutton(khung_fix_loi, text="Tắt Hardware Acceleration (Chống đen màn hình, giật lag trên máy cũ)", variable=self.bien_tat_hw_accel).pack(anchor="w", padx=25, pady=4)
+
+        self.bien_bat_autosave = tk.BooleanVar(value=True)
+        ttk.Checkbutton(khung_fix_loi, text="Bật AutoSave siêu tốc (Tự động lưu file mỗi 3 phút chống mất điện)", variable=self.bien_bat_autosave).pack(anchor="w", padx=25, pady=4)
+
+        khung_nut_toi_uu = ttk.Frame(tab)
+        khung_nut_toi_uu.pack(fill="x", padx=10, pady=15)
+        self.tao_nut_bam(khung_nut_toi_uu, "🚀 THỰC THI TỐI ƯU OFFICE", "#00838F", hanh_dong=self.hanh_dong_thuc_thi_toi_uu).pack(side="right", padx=5)
+
     def cap_nhat_danh_sach_ban_con(self, *args):
         if self.bien_nam_phien_ban.get() == "365":
             self.danh_sach_tha_xuong['values'] = ["ProPlus", "Business", "Home Premium"]
@@ -423,9 +447,7 @@ class TrienKhaiOffice(tk.Tk):
         threading.Thread(target=self.luong_xu_ly_cai_dat_chinh, daemon=True).start()
 
     def luong_xu_ly_cai_dat_chinh(self):
-        # NẮN DÒNG ĐƯỜNG DẪN CHUẨN WINDOWS TRÁNH MÙ MẮT SETUP.EXE
         thu_muc_goc = os.path.normpath(self.thu_muc_lam_viec.get())
-        
         ma_nam = self.bien_nam_phien_ban.get()
         ma_loai = self.danh_sach_tha_xuong.get().replace(" & ", "").replace(" ", "")
         ma_san_pham = TUDIEN_PHIENBAN.get(f"{ma_nam}_{ma_loai}", "ProPlus2024Retail")
@@ -534,7 +556,6 @@ class TrienKhaiOffice(tk.Tk):
         with open(file_cau_hinh_xml, "w", encoding="utf-8") as f:
             f.write(ma_lenh_xml)
         
-        # CẬP NHẬT TRẠNG THÁI HIỂN THỊ ĐỂ TRÁNH GÂY HIỂU LẦM "KẸT"
         self.cap_nhat_trang_thai("🚀 Đang khởi động lõi cài đặt Microsoft C2R. Bác chờ bảng Office hiện lên nhé...")
         tien_trinh_cai_dat = subprocess.Popen([duong_dan_setup, "/configure", file_cau_hinh_xml], cwd=thu_muc_goc)
         tien_trinh_cai_dat.wait()
@@ -635,11 +656,8 @@ class TrienKhaiOffice(tk.Tk):
         self.cap_nhat_trang_thai("⏳ Đang thanh lọc Ohook khỏi hệ thống...")
         threading.Thread(target=self.luong_xu_ly_thuoc_chung, args=("/OhookUninstall", "✅ Đã rút thuốc và khôi phục sự trong sạch cho Office!"), daemon=True).start()
 
-    # ==========================================================================
-    # CHỨC NĂNG CỨU HỘ KHẨN CẤP (TRỊ BỆNH ZOMBIE MẤT REGISTRY)
-    # ==========================================================================
     def hanh_dong_cuu_ho_zombie(self):
-        if messagebox.askyesno("Cảnh báo Cứu Hộ", "Tính năng này sẽ xóa cướng bức dịch vụ ClickToRunSvc và toàn bộ lõi thư mục.\n\nSử dụng để trị lỗi 'mất Registry không thể gỡ/cài lại'. Tiếp tục?"):
+        if messagebox.askyesno("Cảnh báo Cứu Hộ", "Tính năng này sẽ xóa cưỡng bức dịch vụ ClickToRunSvc và toàn bộ lõi thư mục.\n\nSử dụng để trị lỗi 'mất Registry không thể gỡ/cài lại'. Tiếp tục?"):
             threading.Thread(target=self.luong_xu_ly_cuu_ho, daemon=True).start()
 
     def luong_xu_ly_cuu_ho(self):
@@ -669,6 +687,75 @@ class TrienKhaiOffice(tk.Tk):
                     
             self.cap_nhat_trang_thai("✅ Cứu hộ thành công! Hệ thống đã sẵn sàng cài mới.")
             messagebox.showinfo("Hoàn Tất Xóa Ép Buộc", "Đã diệt gọn tàn dư lõi C2R.\nBây giờ bác có thể quay lại tab 'Triển Khai & Kích Hoạt' để cài mới bình thường!")
+        finally:
+            self.after(0, lambda: self.thanh_tien_do.stop())
+
+    # ==========================================================================
+    # LUỒNG THỰC THI TỐI ƯU HÓA OFFICE THÔNG MINH
+    # ==========================================================================
+    def hanh_dong_thuc_thi_toi_uu(self):
+        threading.Thread(target=self.luong_xu_ly_toi_uu, daemon=True).start()
+
+    def luong_xu_ly_toi_uu(self):
+        self.after(0, lambda: self.thanh_tien_do.config(mode='indeterminate', value=0))
+        self.after(0, lambda: self.thanh_tien_do.start(15))
+        try:
+            # 1. XỬ LÝ NGHỊ ĐỊNH 30 QUA VBSCRIPT VÀO NORMAL.DOTM
+            if self.bien_nghi_dinh.get():
+                self.cap_nhat_trang_thai("⏳ Đang nạp cấu hình Nghị định 30 vào lõi Template Word...")
+                ma_lenh_vbs = """On Error Resume Next
+Set objWord = CreateObject("Word.Application")
+objWord.Visible = False
+Set objDoc = objWord.Documents.Add()
+Set objTemplate = objWord.NormalTemplate
+objTemplate.OpenAsDocument
+Set activeDoc = objWord.ActiveDocument
+activeDoc.Styles("Normal").Font.Name = "Times New Roman"
+activeDoc.Styles("Normal").Font.Size = 14
+activeDoc.PageSetup.TopMargin = 56.7
+activeDoc.PageSetup.BottomMargin = 56.7
+activeDoc.PageSetup.LeftMargin = 85.05
+activeDoc.PageSetup.RightMargin = 56.7
+activeDoc.Save
+activeDoc.Close
+objDoc.Close False
+objWord.Quit
+"""
+                file_vbs_nd30 = os.path.join(os.environ['TEMP'], 'toi_uu_nd30.vbs')
+                with open(file_vbs_nd30, 'w', encoding='utf-8') as f:
+                    f.write(ma_lenh_vbs)
+                subprocess.run(['cscript', '//nologo', file_vbs_nd30], creationflags=subprocess.CREATE_NO_WINDOW)
+
+            # 2. TẮT MÀN HÌNH WELCOME
+            if self.bien_tat_welcome.get():
+                self.cap_nhat_trang_thai("⏳ Đang ép Office khởi động thẳng vào trang trắng...")
+                danh_sach_app = ["Word", "Excel", "PowerPoint"]
+                for app in danh_sach_app:
+                    os.system(f'reg add "HKCU\\Software\\Microsoft\\Office\\16.0\\{app}\\Options" /v DisableBootToOfficeStart /t REG_DWORD /d 1 /f >nul 2>&1')
+
+            # 3. TẮT PROTECTED VIEW (MỞ FILE ZALO KHÔNG CẢNH BÁO)
+            if self.bien_tat_protect.get():
+                self.cap_nhat_trang_thai("⏳ Đang tiêu diệt rào cản Protected View...")
+                danh_sach_app = ["Word", "Excel", "PowerPoint"]
+                for app in danh_sach_app:
+                    khoa_reg = f'"HKCU\\Software\\Microsoft\\Office\\16.0\\{app}\\Security\\ProtectedView"'
+                    os.system(f'reg add {khoa_reg} /v DisableAttachementsInPV /t REG_DWORD /d 1 /f >nul 2>&1')
+                    os.system(f'reg add {khoa_reg} /v DisableInternetFilesInPV /t REG_DWORD /d 1 /f >nul 2>&1')
+                    os.system(f'reg add {khoa_reg} /v DisableUnsafeLocationsInPV /t REG_DWORD /d 1 /f >nul 2>&1')
+
+            # 4. TẮT HARDWARE ACCELERATION
+            if self.bien_tat_hw_accel.get():
+                self.cap_nhat_trang_thai("⏳ Đang vô hiệu hóa Hardware Acceleration chống đen màn hình...")
+                os.system('reg add "HKCU\\Software\\Microsoft\\Office\\16.0\\Common\\Graphics" /v DisableHardwareAcceleration /t REG_DWORD /d 1 /f >nul 2>&1')
+
+            # 5. BẬT AUTOSAVE 3 PHÚT
+            if self.bien_bat_autosave.get():
+                self.cap_nhat_trang_thai("⏳ Đang siết chu kỳ AutoSave xuống 3 phút...")
+                os.system('reg add "HKCU\\Software\\Microsoft\\Office\\16.0\\Word\\Options" /v AutoSaveInterval /t REG_DWORD /d 3 /f >nul 2>&1')
+                os.system('reg add "HKCU\\Software\\Microsoft\\Office\\16.0\\Excel\\Options" /v AutoSaveInterval /t REG_DWORD /d 3 /f >nul 2>&1')
+
+            self.cap_nhat_trang_thai("✅ TỐI ƯU HOÀN TẤT: Office đã được buff sức mạnh tối đa!")
+            messagebox.showinfo("VietToolbox Optimize", "Quá trình ép xung phần mềm đã hoàn tất!\n- Căn lề chuẩn nhà nước.\n- Tắt bảng vàng báo lỗi Zalo.\n- Khởi động một phát ăn ngay.\n\nBác có thể mở Word lên để test ngay nhé!")
         finally:
             self.after(0, lambda: self.thanh_tien_do.stop())
 
