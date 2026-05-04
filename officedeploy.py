@@ -409,7 +409,7 @@ class UngDungCaiDatOffice:
             return
 
         app_chon = [t for t, v in self.cac_bien_ung_dung.items() if v.get()]
-        xml_code = f"""<Configuration>\n  <Add SourcePath="{thu_muc_goc}" OfficeClientEdition="{kien_truc_so}" Channel="Current" Version="{version_hien_tai}">\n    <Product ID="{ma_san_pham}">\n      <Language ID="{ngon_ngu}" />\n"""
+        xml_code = f"""<Configuration>\n  <Add SourcePath="{thu_muc_goc}" OfficeClientEdition="{kien_truc_so}" Channel="Current" Version="{version_hien_tai}" AllowCdnFallback="True">\n    <Product ID="{ma_san_pham}">\n      <Language ID="{ngon_ngu}" />\n"""
         for t, m in tu_dien_ung_dung.items():
             if t not in app_chon: xml_code += f'      <ExcludeApp ID="{m}" />\n'
         xml_code += """    </Product>\n  </Add>\n  <Updates Enabled="TRUE" />\n  <Display Level="Full" AcceptEULA="TRUE" />\n</Configuration>"""
