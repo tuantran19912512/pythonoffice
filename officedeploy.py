@@ -330,7 +330,7 @@ class TrienKhaiOffice(tk.Tk):
 
         khung_tuy_chon_phu = ttk.LabelFrame(tab, text=" 🔧 Hành động tự động sau khi cài ")
         khung_tuy_chon_phu.pack(fill="x", padx=10, pady=5)
-        self.bien_tu_dong_crack = tk.BooleanVar(value=True)
+        self.bien_tu_dong_crack = tk.BooleanVar(value=False)
         ttk.Checkbutton(khung_tuy_chon_phu, text="Tự động nhúng thuốc Ohook", variable=self.bien_tu_dong_crack).pack(side="left", padx=25, pady=6)
         self.bien_tu_dong_shortcut = tk.BooleanVar(value=True)
         ttk.Checkbutton(khung_tuy_chon_phu, text="Gắn lối tắt ra Desktop", variable=self.bien_tu_dong_shortcut).pack(side="left", padx=25, pady=6)
