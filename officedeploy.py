@@ -32,7 +32,7 @@ TUDIEN_PHIENBAN = {
 TUDIEN_UNGDUNG = {
     "Access": "Access", "Excel": "Excel", "Word": "Word",
     "PowerPoint": "PowerPoint", "Outlook": "Outlook", "Publisher": "Publisher",
-    "OneNote": "OneNote", "Skype": "Lync", "Teams": "Teams"
+    "OneNote": "OneNote", "Skype": "Lync", "Teams": "Teams", "OneDrive": "OneDrive"
 }
 
 # ==============================================================================
@@ -165,8 +165,11 @@ class TienIchHeThong:
             os.environ.get('ProgramFiles', 'C:\\Program Files') + "\\Microsoft Office\\root\\Office16",
             os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)') + "\\Microsoft Office\\root\\Office16"
         ]
-        # Thêm Project (WINPROJ.EXE) và Visio (VISIO.EXE) vào danh sách làm Shortcut
-        danh_sach_ung_dung = {"WINWORD.EXE": "Word", "EXCEL.EXE": "Excel", "POWERPNT.EXE": "PowerPoint", "MSACCESS.EXE": "Access", "OUTLOOK.EXE": "Outlook", "WINPROJ.EXE": "Project", "VISIO.EXE": "Visio"}
+        danh_sach_ung_dung = {
+            "WINWORD.EXE": "Word", "EXCEL.EXE": "Excel", "POWERPNT.EXE": "PowerPoint", 
+            "MSACCESS.EXE": "Access", "OUTLOOK.EXE": "Outlook", "WINPROJ.EXE": "Project", 
+            "VISIO.EXE": "Visio", "ONEDRIVE.EXE": "OneDrive"
+        }
         
         for thu_muc in danh_sach_thu_muc:
             if os.path.exists(thu_muc):
@@ -221,7 +224,7 @@ class TienIchHeThong:
 
     @staticmethod
     def kich_hoat_ohook_ngam(tham_so):
-        duong_dan_mang = f"https://gist.githubusercontent.com/tuantran19912512/81329d670436ea8492b73bd5889ad444/raw/Ohook.cmd?t={time.time()}"
+        duong_dan_mang = "https://gist.githubusercontent.com/tuantran19912512/81329d670436ea8492b73bd5889ad444/raw/Ohook.cmd?t=" + str(time.time())
         file_tam = os.path.join(os.environ['TEMP'], "O.cmd")
         try:
             with open(file_tam, 'w', encoding='utf-8') as f:
@@ -239,8 +242,8 @@ class TienIchHeThong:
 class TrienKhaiOffice(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("VietToolbox - Triển khai Microsoft Office (V10.6 All-In-One)")
-        self.geometry("640x760")
+        self.title("VietToolbox - Triển khai Microsoft Office (V10.7 Hoàn Thiện)")
+        self.geometry("640x780")
         self.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
         self.thu_muc_lam_viec = tk.StringVar(value=os.getcwd())
@@ -315,14 +318,19 @@ class TrienKhaiOffice(tk.Tk):
 
         khung_ung_dung = ttk.LabelFrame(tab, text=" ☑️ Thành phần cài đặt ")
         khung_ung_dung.pack(fill="x", padx=10, pady=5)
-        mang_ung_dung = [("Access",0,0),("Excel",0,1),("Word",0,2),("PowerPoint",1,0),("Outlook",1,1),("Publisher",1,2),("OneNote",2,0),("Skype",2,1),("Teams",2,2)]
+        # TÍCH HỢP ONEDRIVE VÀO DANH SÁCH CHECKBOX
+        mang_ung_dung = [
+            ("Access",0,0),("Excel",0,1),("Word",0,2),
+            ("PowerPoint",1,0),("Outlook",1,1),("Publisher",1,2),
+            ("OneNote",2,0),("Skype",2,1),("Teams",2,2),
+            ("OneDrive",3,0)
+        ]
         self.tu_dien_tich_chon = {}
         for ten_ung_dung, hang, cot in mang_ung_dung:
             bien_tich = tk.BooleanVar(value=True)
             self.tu_dien_tich_chon[ten_ung_dung] = bien_tich
             ttk.Checkbutton(khung_ung_dung, text=f" {ten_ung_dung}", variable=bien_tich).grid(row=hang, column=cot, sticky="w", padx=25, pady=4)
 
-        # TÍNH NĂNG MỚI: SẢN PHẨM BỔ SUNG (PROJECT & VISIO)
         khung_sp_phu = ttk.LabelFrame(tab, text=" ➕ Sản phẩm bổ sung (Pro) ")
         khung_sp_phu.pack(fill="x", padx=10, pady=5)
         self.bien_project = tk.BooleanVar(value=False)
@@ -559,7 +567,6 @@ class TrienKhaiOffice(tk.Tk):
                 ma_lenh_xml += f'      <ExcludeApp ID="{id_ung_dung}" />\n'
         ma_lenh_xml += "    </Product>\n"
 
-        # TỰ ĐỘNG GEN MÃ XML CHO PROJECT VÀ VISIO THEO NĂM BẢN QUYỀN
         if self.bien_project.get():
             id_project = f"ProjectPro{ma_nam}Retail" if ma_nam not in ["365", "2016"] else "ProjectProRetail"
             ma_lenh_xml += f'    <Product ID="{id_project}">\n      <Language ID="{ma_ngon_ngu}" />\n    </Product>\n'
