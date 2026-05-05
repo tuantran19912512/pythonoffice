@@ -72,6 +72,3 @@ if ($coPython) {
         if (Test-Path $filePyLuu) { Remove-Item $filePyLuu -Force }
     }
 }
-
-Write-Host "`nQuá trình hoàn tất. Ấn phím Enter để thoát..." -ForegroundColor DarkGray
-Read-Host
