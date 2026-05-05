@@ -165,7 +165,8 @@ class TienIchHeThong:
             os.environ.get('ProgramFiles', 'C:\\Program Files') + "\\Microsoft Office\\root\\Office16",
             os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)') + "\\Microsoft Office\\root\\Office16"
         ]
-        danh_sach_ung_dung = {"WINWORD.EXE": "Word", "EXCEL.EXE": "Excel", "POWERPNT.EXE": "PowerPoint", "MSACCESS.EXE": "Access", "OUTLOOK.EXE": "Outlook"}
+        # Thêm Project (WINPROJ.EXE) và Visio (VISIO.EXE) vào danh sách làm Shortcut
+        danh_sach_ung_dung = {"WINWORD.EXE": "Word", "EXCEL.EXE": "Excel", "POWERPNT.EXE": "PowerPoint", "MSACCESS.EXE": "Access", "OUTLOOK.EXE": "Outlook", "WINPROJ.EXE": "Project", "VISIO.EXE": "Visio"}
         
         for thu_muc in danh_sach_thu_muc:
             if os.path.exists(thu_muc):
@@ -238,8 +239,8 @@ class TienIchHeThong:
 class TrienKhaiOffice(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("VietToolbox - Triển khai Microsoft Office (V10.5 Auto Optimize)")
-        self.geometry("640x720")
+        self.title("VietToolbox - Triển khai Microsoft Office (V10.6 All-In-One)")
+        self.geometry("640x760")
         self.resizable(False, False)
         self.phong_chu_dam = ("Segoe UI", 9, "bold")
         self.thu_muc_lam_viec = tk.StringVar(value=os.getcwd())
@@ -263,7 +264,7 @@ class TrienKhaiOffice(tk.Tk):
 
         tab_cai_dat = ttk.Frame(hop_dieu_huong)
         tab_go_cai_dat = ttk.Frame(hop_dieu_huong)
-        tab_toi_uu = ttk.Frame(hop_dieu_huong) # TÍNH NĂNG MỚI: Tab Tối Ưu
+        tab_toi_uu = ttk.Frame(hop_dieu_huong)
         
         hop_dieu_huong.add(tab_cai_dat, text="  ⚙️ Triển Khai  ")
         hop_dieu_huong.add(tab_go_cai_dat, text="  🗑️ Gỡ Cài Đặt  ")
@@ -321,6 +322,14 @@ class TrienKhaiOffice(tk.Tk):
             self.tu_dien_tich_chon[ten_ung_dung] = bien_tich
             ttk.Checkbutton(khung_ung_dung, text=f" {ten_ung_dung}", variable=bien_tich).grid(row=hang, column=cot, sticky="w", padx=25, pady=4)
 
+        # TÍNH NĂNG MỚI: SẢN PHẨM BỔ SUNG (PROJECT & VISIO)
+        khung_sp_phu = ttk.LabelFrame(tab, text=" ➕ Sản phẩm bổ sung (Pro) ")
+        khung_sp_phu.pack(fill="x", padx=10, pady=5)
+        self.bien_project = tk.BooleanVar(value=False)
+        self.bien_visio = tk.BooleanVar(value=False)
+        ttk.Checkbutton(khung_sp_phu, text=" Microsoft Project Pro", variable=self.bien_project).pack(side="left", padx=25, pady=4)
+        ttk.Checkbutton(khung_sp_phu, text=" Microsoft Visio Pro", variable=self.bien_visio).pack(side="left", padx=25, pady=4)
+
         khung_luu_tru = ttk.LabelFrame(tab, text=" 📂 Thư mục làm việc & Lưu trữ lõi C2R ")
         khung_luu_tru.pack(fill="x", padx=10, pady=5)
         khung_con_luu_tru = ttk.Frame(khung_luu_tru)
@@ -330,7 +339,7 @@ class TrienKhaiOffice(tk.Tk):
 
         khung_tuy_chon_phu = ttk.LabelFrame(tab, text=" 🔧 Hành động tự động sau khi cài ")
         khung_tuy_chon_phu.pack(fill="x", padx=10, pady=5)
-        self.bien_tu_dong_crack = tk.BooleanVar(value=False)
+        self.bien_tu_dong_crack = tk.BooleanVar(value=True)
         ttk.Checkbutton(khung_tuy_chon_phu, text="Tự động nhúng thuốc Ohook", variable=self.bien_tu_dong_crack).pack(side="left", padx=25, pady=6)
         self.bien_tu_dong_shortcut = tk.BooleanVar(value=True)
         ttk.Checkbutton(khung_tuy_chon_phu, text="Gắn lối tắt ra Desktop", variable=self.bien_tu_dong_shortcut).pack(side="left", padx=25, pady=6)
@@ -370,9 +379,6 @@ class TrienKhaiOffice(tk.Tk):
         khung_nut_cuu_ho.pack(fill="x", padx=10, pady=5)
         self.tao_nut_bam(khung_nut_cuu_ho, "🆘 XÓA ÉP BUỘC C2R", "#E65100", hanh_dong=self.hanh_dong_cuu_ho_zombie).pack(side="right", padx=5, pady=2)
 
-    # ==========================================================================
-    # THIẾT KẾ TAB TỐI ƯU HÓA (TÍNH NĂNG MỚI THEO YÊU CẦU)
-    # ==========================================================================
     def thiet_ke_tab_toi_uu(self, tab):
         khung_nghi_dinh = ttk.LabelFrame(tab, text=" 📜 Cấu hình chuẩn nhà nước (Nghị định 30) ")
         khung_nghi_dinh.pack(fill="x", padx=10, pady=7)
@@ -547,10 +553,22 @@ class TrienKhaiOffice(tk.Tk):
 
         danh_sach_chon = [ten for ten, bien in self.tu_dien_tich_chon.items() if bien.get()]
         ma_lenh_xml = f"""<Configuration>\n  <Add SourcePath="{thu_muc_goc}" OfficeClientEdition="{nhi_phan_so}" Channel="Current" Version="{phien_ban_moi_nhat}" AllowCdnFallback="True">\n    <Product ID="{ma_san_pham}">\n      <Language ID="{ma_ngon_ngu}" />\n"""
+        
         for ten_ung_dung, id_ung_dung in TUDIEN_UNGDUNG.items():
             if ten_ung_dung not in danh_sach_chon:
                 ma_lenh_xml += f'      <ExcludeApp ID="{id_ung_dung}" />\n'
-        ma_lenh_xml += """    </Product>\n  </Add>\n  <Updates Enabled="TRUE" />\n  <Display Level="Full" AcceptEULA="TRUE" />\n</Configuration>"""
+        ma_lenh_xml += "    </Product>\n"
+
+        # TỰ ĐỘNG GEN MÃ XML CHO PROJECT VÀ VISIO THEO NĂM BẢN QUYỀN
+        if self.bien_project.get():
+            id_project = f"ProjectPro{ma_nam}Retail" if ma_nam not in ["365", "2016"] else "ProjectProRetail"
+            ma_lenh_xml += f'    <Product ID="{id_project}">\n      <Language ID="{ma_ngon_ngu}" />\n    </Product>\n'
+            
+        if self.bien_visio.get():
+            id_visio = f"VisioPro{ma_nam}Retail" if ma_nam not in ["365", "2016"] else "VisioProRetail"
+            ma_lenh_xml += f'    <Product ID="{id_visio}">\n      <Language ID="{ma_ngon_ngu}" />\n    </Product>\n'
+
+        ma_lenh_xml += """  </Add>\n  <Updates Enabled="TRUE" />\n  <Display Level="Full" AcceptEULA="TRUE" />\n</Configuration>"""
         
         file_cau_hinh_xml = os.path.join(thu_muc_goc, "C2R_Config.xml")
         with open(file_cau_hinh_xml, "w", encoding="utf-8") as f:
