@@ -1,74 +1,108 @@
 # ==============================================================================
-# KỊCH BẢN MỒI TỰ ĐỘNG (BOOTSTRAP SCRIPT) - CHỐNG LỖI MICROSOFT STORE
+# VIETTOOLBOX BOOTSTRAP V4.1 - GIAO DIỆN CỬA SỔ CÓ DẤU TIẾNG VIỆT
 # ==============================================================================
 
+# 1. Ép quyền Admin
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Warning "Vui lòng chạy lệnh này trong cửa sổ PowerShell dưới quyền Administrator!"
     Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs; exit
 }
 
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+# --- KHỞI TẠO CỬA SỔ GIAO DIỆN ---
+$form = New-Object Windows.Forms.Form
+$form.Text = "VietToolbox - Chuẩn bị môi trường"
+$form.Size = New-Object Drawing.Size(460, 190)
+$form.StartPosition = "CenterScreen"
+$form.FormBorderStyle = "FixedDialog"
+$form.MaximizeBox = $false
+$form.MinimizeBox = $false
+$form.TopMost = $true
+$form.BackColor = [Drawing.Color]::FromArgb(245, 245, 245)
+
+# Nhãn tiêu đề
+$lblTitle = New-Object Windows.Forms.Label
+$lblTitle.Text = "HỆ THỐNG ĐANG KIỂM TRA ĐIỀU KIỆN CÀI ĐẶT"
+$lblTitle.Location = New-Object Drawing.Point(20, 20)
+$lblTitle.Size = New-Object Drawing.Size(420, 25)
+$lblTitle.Font = New-Object Drawing.Font("Segoe UI", 10, [Drawing.FontStyle]::Bold)
+$form.Controls.Add($lblTitle)
+
+# Nhãn trạng thái
+$lblStatus = New-Object Windows.Forms.Label
+$lblStatus.Text = "Vui lòng chờ trong giây lát..."
+$lblStatus.Location = New-Object Drawing.Point(20, 50)
+$lblStatus.Size = New-Object Drawing.Size(420, 20)
+$lblStatus.Font = New-Object Drawing.Font("Segoe UI", 9)
+$form.Controls.Add($lblStatus)
+
+# Thanh Progress Bar
+$progressBar = New-Object Windows.Forms.ProgressBar
+$progressBar.Location = New-Object Drawing.Point(20, 85)
+$progressBar.Size = New-Object Drawing.Size(400, 25)
+$progressBar.Style = "Continuous"
+$form.Controls.Add($progressBar)
+
+# Hiển thị form
+$form.Show()
+$form.Focus()
+
+# Hàm cập nhật giao diện
+function Update-VTUI {
+    param([string]$Status, [int]$Value)
+    $lblStatus.Text = $Status
+    $progressBar.Value = $Value
+    $form.Refresh()
+}
+
+# --- BẮT ĐẦU QUY TRÌNH XỬ LÝ ---
 $ErrorActionPreference = "SilentlyContinue"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-Write-Host "Đang kiểm tra môi trường hệ thống..." -ForegroundColor Cyan
-$coPython = $false
+# 1. Kiểm tra Python
+Update-VTUI -Status "Đang kiểm tra môi trường Python..." -Value 10
+$pyCmd = Get-Command "python.exe" -ErrorAction SilentlyContinue
 
-# Kiểm tra Python và loại trừ file giả mạo của Microsoft Store (nằm trong thư mục WindowsApps)
-$pyCmd = Get-Command "python" -ErrorAction SilentlyContinue
 if ($pyCmd -and ($pyCmd.Source -notmatch "WindowsApps")) {
-    $coPython = $true
-    Write-Host "[Xong] Đã tìm thấy Python chuẩn trong hệ thống." -ForegroundColor Green
+    Update-VTUI -Status "Đã tìm thấy Python chuẩn. Đang nạp Tool..." -Value 50
+    Start-Sleep -Milliseconds 800
 } else {
-    Write-Host "[Chú ý] Máy chưa có Python (hoặc đang bị kẹt file ảo của Windows)."
-    Write-Host "-> Đang tự động tải và cài đặt Python chuẩn (quá trình này mất khoảng 1 phút)..." -ForegroundColor Yellow
+    Update-VTUI -Status "Không tìm thấy Python. Đang tải bộ cài từ Microsoft..." -Value 20
+    $link = "https://www.python.org/ftp/python/3.12.3/python-3.12.3-amd64.exe"
+    $path = Join-Path $env:TEMP "py_inst.exe"
+    Invoke-WebRequest -Uri $link -OutFile $path -UseBasicParsing
     
-    $linkTaiPython = "https://www.python.org/ftp/python/3.12.3/python-3.12.3-amd64.exe"
-    $fileCaiDat = Join-Path $env:TEMP "python_installer.exe"
-
-    try {
-        Invoke-WebRequest -Uri $linkTaiPython -OutFile $fileCaiDat -UseBasicParsing
-        # Cài đặt ngầm (Silent), tự động add PATH và cài tcltk (bắt buộc cho giao diện tkinter)
-        $tienTrinh = Start-Process -FilePath $fileCaiDat -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_tcltk=1" -Wait -PassThru
-        
-        if ($tienTrinh.ExitCode -eq 0) {
-            Write-Host "[Xong] Cài đặt Python thành công!" -ForegroundColor Green
-            # Ép Windows nạp lại biến môi trường ngay lập tức
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-            $coPython = $true
-        } else {
-            Write-Host "[Lỗi] Cài đặt Python thất bại. Mã lỗi: $($tienTrinh.ExitCode)" -ForegroundColor Red
-        }
-    } catch {
-        Write-Host "[Lỗi] Không thể tải bộ cài Python từ máy chủ." -ForegroundColor Red
-    } finally {
-        if (Test-Path $fileCaiDat) { Remove-Item $fileCaiDat -Force }
+    Update-VTUI -Status "Đang cài đặt Python (quá trình này mất khoảng 1 phút)..." -Value 40
+    $p = Start-Process -FilePath $path -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_tcltk=1" -Wait -PassThru
+    
+    if ($p.ExitCode -eq 0) {
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        Update-VTUI -Status "Cài đặt Python thành công!" -Value 60
     }
+    if (Test-Path $path) { Remove-Item $path -Force }
 }
 
-# Tiến hành tải và chạy tool của bạn
-if ($coPython) {
-    Write-Host "Đang nạp Office Deploy từ GitHub..." -ForegroundColor Cyan
-    
-    # Dùng bộ đếm Ticks của đồng hồ hệ thống để tạo ra một chuỗi số ngẫu nhiên không bao giờ trùng lặp
-	$linkScriptPy = "https://raw.githubusercontent.com/tuantran19912512/pythonoffice/refs/heads/main/officedeploy.py?t=$((Get-Date).Ticks)"
-    $filePyLuu = Join-Path $env:TEMP "OfficeDeploy_Master.py"
+# 2. Tải Script từ GitHub
+Update-VTUI -Status "Đang đồng bộ dữ liệu từ GitHub..." -Value 85
+$url = "https://raw.githubusercontent.com/tuantran19912512/pythonoffice/refs/heads/main/officedeploy.py?t=$((Get-Date).Ticks)"
+$out = Join-Path $env:TEMP "VT_Office.py"
 
-    try {
-        Invoke-WebRequest -Uri $linkScriptPy -OutFile $filePyLuu -UseBasicParsing
+try {
+    Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
+    if (Test-Path $out) {
+        Update-VTUI -Status "Mọi thứ đã sẵn sàng! Đang mở giao diện chính..." -Value 100
+        Start-Sleep -Milliseconds 1200
+        $form.Close()
         
-        if (Test-Path $filePyLuu) {
-            Write-Host "-> Bắt đầu khởi chạy Tool..." -ForegroundColor Green
-            Write-Host "------------------------------------------------------"
-            
-            # Khởi chạy Python trực tiếp
-            python $filePyLuu
-            
-            Write-Host "------------------------------------------------------"
-            Write-Host "[Xong] Đã đóng ứng dụng." -ForegroundColor Cyan
-        }
-    } catch {
-        Write-Host "[Lỗi] Không thể tải được file Python từ GitHub. Hãy kiểm tra lại link." -ForegroundColor Red
-    } finally {
-        if (Test-Path $filePyLuu) { Remove-Item $filePyLuu -Force }
+        # Chạy tool chính
+        & python.exe $out
     }
+} catch {
+    $lblStatus.ForeColor = [Drawing.Color]::Red
+    Update-VTUI -Status "LỖI: Không thể kết nối đến GitHub!" -Value 0
+    Start-Sleep -Seconds 5
+    $form.Close()
+} finally {
+    if (Test-Path $out) { Remove-Item $out -Force }
 }
